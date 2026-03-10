@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Datlas — Editor de Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0:#0a0c0f; --bg1:#10131a; --bg2:#161b24; --bg3:#1e2433;
+  --border:#252d3d; --border2:#2e3a50;
+  --accent:#00e87a; --accent2:#00b85e;
+  --warn:#f59e0b; --err:#ef4444;
+  --text1:#e8edf5; --text2:#8b97b0; --text3:#4a5568;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg0);color:var(--text1);font-family:var(--sans);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── TOP BAR ── */
+.topbar{height:48px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.tb-logo{font-weight:800;font-size:15px;letter-spacing:1px;color:var(--text1)}
+.tb-logo span{color:var(--accent)}
+.tb-arena{font-size:12px;color:var(--text2);font-family:var(--mono)}
+.tb-badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.5px}
+.badge-online{background:rgba(0,232,122,.12);color:var(--accent);border:1px solid rgba(0,232,122,.2)}
+.badge-offline{background:rgba(239,68,68,.1);color:var(--err);border:1px solid rgba(239,68,68,.2)}
+.badge-idle{background:rgba(245,158,11,.1);color:var(--warn);border:1px solid rgba(245,158,11,.2)}
+.tb-sep{width:1px;height:20px;background:var(--border)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* ── LAYOUT PRINCIPAL ── */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ARENAS ── */
+.sidebar{width:220px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-hd{padding:12px 14px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.arena-list{flex:1;overflow-y:auto;padding:6px}
+.arena-item{padding:9px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px;border:1px solid transparent;transition:.12s}
+.arena-item:hover{background:var(--bg2)}
+.arena-item.active{background:rgba(0,232,122,.06);border-color:rgba(0,232,122,.15)}
+.ai-name{font-weight:600;font-size:12px;margin-bottom:2px}
+.ai-meta{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.ai-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+.dot-online{background:var(--accent);box-shadow:0 0 4px var(--accent)}
+.dot-idle{background:var(--warn)}
+.dot-offline{background:var(--text3)}
+
+/* ── CONTENT AREA ── */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── TABS ── */
+.tabs{height:38px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 16px;gap:2px;flex-shrink:0}
+.tab{padding:8px 14px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;white-space:nowrap}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--text1);border-bottom-color:var(--accent)}
+
+/* ── PAGE ── */
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.page.active{display:flex}
+.page-scroll{flex:1;overflow-y:auto;padding:16px}
+
+/* ══════════════════════════════════════════════
+   EDITOR DE ARENA
+══════════════════════════════════════════════ */
+.editor-wrap{display:flex;gap:12px;flex:1;overflow:hidden;padding:14px}
+
+/* canvas side */
+.editor-canvas-col{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+
+.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tool-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;transition:.12s;white-space:nowrap}
+.tool-btn:hover{border-color:var(--accent);color:var(--text1)}
+.tool-btn.active{background:rgba(0,232,122,.1);border-color:var(--accent);color:var(--accent)}
+.tool-sep{width:1px;height:20px;background:var(--border);margin:0 2px}
+.tool-btn-sm{padding:4px 9px;font-size:10px}
+
+.canvas-outer{position:relative;flex:1;background:#000;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.canvas-outer video,
+.canvas-outer img.stream{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#editorCanvas{position:absolute;inset:0;width:100%;height:100%}
+.canvas-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:var(--accent);font-size:10px;padding:4px 12px;border-radius:20px;pointer-events:none;white-space:nowrap;font-family:var(--mono);transition:.3s}
+
+.scrubber{padding:6px 12px;background:rgba(0,0,0,.7);position:absolute;bottom:0;left:0;right:0}
+.scrubber input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+.scrubber-times{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:1px}
+
+/* panel side */
+.editor-panel{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.card-hd{padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--text2)}
+.card-body{padding:12px}
+
+/* form elements */
+.form-label{font-size:9px;font-weight:700;letter-spacing:.8px;color:var(--text3);margin-bottom:4px}
+.form-input{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text1);font-size:11px;padding:5px 9px;width:100%;font-family:var(--sans)}
+.form-input:focus{outline:none;border-color:var(--accent)}
+.coords{font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--bg3);padding:3px 7px;border-radius:4px}
+
+/* faixas lista */
+.faixa-item{display:flex;align-items:center;gap:7px;padding:5px 7px;background:var(--bg3);border-radius:5px;border:1px solid var(--border)}
+.faixa-color{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.faixa-label{flex:1;font-size:10px;font-family:var(--mono)}
+.faixa-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 2px;line-height:1}
+.faixa-del:hover{color:var(--err)}
+
+/* cores */
+.cor-btn{width:18px;height:18px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:.1s;flex-shrink:0}
+.cor-btn.sel{border-color:#fff;transform:scale(1.15)}
+
+/* btn */
+.btn{padding:6px 14px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:.12s;font-family:var(--sans)}
+.btn-accent{background:var(--accent);color:#000}
+.btn-accent:hover{background:var(--accent2)}
+.btn-accent:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Painel de publicação ── */
+.pub-bar{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.pub-status{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
+.pub-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:.3s}
+.pub-dot.ok   {background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.pub-dot.warn {background:var(--warn);box-shadow:0 0 6px var(--warn);animation:pulsar 1.2s infinite}
+.pub-dot.err  {background:var(--err);box-shadow:0 0 6px var(--err)}
+.pub-dot.idle {background:var(--text3)}
+.pub-txt{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pub-sub{font-size:9px;color:var(--text3);font-family:var(--mono)}
+.pub-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.btn-pub{padding:6px 16px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:.15s;display:flex;align-items:center;gap:5px}
+.btn-pub.go   {background:var(--accent);color:#000}
+.btn-pub.go:hover{background:var(--accent2)}
+.btn-pub.sched{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.25)}
+.btn-pub.sched:hover{background:rgba(245,158,11,.22)}
+.btn-pub.cancel{background:rgba(239,68,68,.1);color:var(--err);border:1px solid rgba(239,68,68,.2)}
+.btn-pub.cancel:hover{background:rgba(239,68,68,.2)}
+.btn-pub:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.pub-fase-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:var(--mono);letter-spacing:.4px}
+.pb-apostas{background:rgba(62,181,255,.12);color:#3eb5ff}
+.pb-evento  {background:rgba(245,158,11,.12); color:var(--warn)}
+.pb-freeze  {background:rgba(239,68,68,.1);   color:var(--err)}
+.pb-preview {background:rgba(0,232,122,.08);  color:var(--accent)}
+.pb-idle    {background:var(--bg3);           color:var(--text3)}
+@keyframes pulsar{0%,100%{opacity:1}50%{opacity:.4}}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:transparent;color:var(--err);border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.08)}
+
+/* json preview */
+.json-pre{font-family:var(--mono);font-size:9px;color:var(--text2);background:var(--bg3);padding:8px;border-radius:4px;max-height:110px;overflow:auto;white-space:pre-wrap;word-break:break-all;line-height:1.6}
+
+/* ══════════════════════════════════════════════
+   LOG PC
+══════════════════════════════════════════════ */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+.kpi-val{font-size:22px;font-weight:800;line-height:1;margin:4px 0}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:.8px;color:var(--text3)}
+.kpi-sub{font-size:9px;color:var(--text3)}
+.kpi-val.ok{color:var(--accent)}
+.kpi-val.warn{color:var(--warn)}
+.kpi-val.err{color:var(--err)}
+
+.log-row{display:flex;align-items:flex-start;gap:10px;padding:6px 12px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px}
+.log-row:last-child{border-bottom:none}
+.log-row:hover{background:rgba(255,255,255,.02)}
+.log-ts{color:var(--text3);white-space:nowrap;min-width:72px}
+.log-type{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap}
+.log-type.err{background:rgba(239,68,68,.12);color:var(--err)}
+.log-type.warn{background:rgba(245,158,11,.12);color:var(--warn)}
+.log-type.info{background:rgba(0,232,122,.08);color:var(--accent)}
+.log-type.debug{background:rgba(139,151,176,.08);color:var(--text3)}
+.log-msg{flex:1;color:var(--text2);line-height:1.5}
+.log-msg b{color:var(--text1)}
+
+/* chart mini */
+.chart-wrap{position:relative;height:130px}
+
+/* flow bars */
+.flow-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.flow-bar-label{font-size:10px;min-width:60px;color:var(--text2)}
+.flow-bar-track{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.flow-bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.flow-bar-pct{font-size:10px;color:var(--text3);min-width:32px;text-align:right;font-family:var(--mono)}
+
+/* type cards */
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.type-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center}
+.type-icon{font-size:20px;margin-bottom:4px}
+.type-val{font-size:18px;font-weight:800;color:var(--text1)}
+.type-lbl{font-size:9px;color:var(--text3);letter-spacing:.5px;font-weight:700}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:8px 16px;font-size:12px;color:var(--text1);z-index:9999;transform:translateY(60px);opacity:0;transition:.25s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-color:var(--accent);color:var(--accent)}
+.toast.err{border-color:var(--err);color:var(--err)}
+
+/* mode btn */
+.mode-btn{padding:4px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text3);transition:.12s}
+.mode-btn.active{background:rgba(0,232,122,.1);border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="tb-logo">DAT<span>LAS</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-arena" id="tb-arena-nome">Selecione uma arena</div>
+  <div id="tb-badge" class="tb-badge badge-offline" style="display:none">OFFLINE</div>
+  <div class="tb-right">
+    <button class="mode-btn active" id="btn-modo-video" onclick="setModo('video')">🎬 Vídeo</button>
+    <button class="mode-btn" id="btn-modo-stream" onclick="setModo('stream')">📡 Stream</button>
+    <div class="tb-sep"></div>
+    <span style="font-size:10px;color:var(--text3);font-family:var(--mono)" id="tb-conn">⚫ carbet.py offline</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-hd">
+      ARENAS
+      <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="novaArena()">+ Nova</button>
+    </div>
+    <div class="arena-list" id="arenaList">
+      <!-- populado por JS -->
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" id="tab-editor" onclick="setTab('editor')">🎯 Editor de Arena</div>
+      <div class="tab" id="tab-log" onclick="setTab('log')">📊 Log & Diagnóstico</div>
+    </div>
+
+    <!-- ═══════════ PAGE EDITOR ═══════════ -->
+    <div class="page active" id="page-editor">
+      <div class="editor-wrap">
+
+        <!-- CANVAS COL -->
+        <div class="editor-canvas-col">
+
+          <!-- toolbar -->
+          <div class="toolbar">
+            <button class="tool-btn active" id="tool-linha" onclick="setFerramenta('linha')">
+              ⚡ Linha de Contagem
+            </button>
+            <button class="tool-btn" id="tool-faixa" onclick="setFerramenta('faixa')">
+              🛣 Desenhar Faixa
+            </button>
+            <button class="tool-btn" id="tool-mover" onclick="setFerramenta('mover')">
+              ✥ Mover Pontos
+            </button>
+            <div class="tool-sep"></div>
+            <button class="tool-btn tool-btn-sm btn-ghost" onclick="undo()">↩</button>
+            <button class="tool-btn tool-btn-sm btn-ghost" onclick="limpar()">🗑</button>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button class="btn btn-ghost" style="font-size:11px" onclick="exportarConfig()">↓ JSON</button>
+              <button class="btn" style="font-size:11px;background:#f59e0b;color:#000;font-weight:700" onclick="capturarFundo()" title="Pista vazia? Clique para registrar o fundo fixo">📷 Capturar Fundo</button>
+              <button class="btn btn-accent" id="btn-salvar" onclick="salvarConfig()" disabled>✓ Salvar Arena</button>
+            </div>
+          </div>
+
+          <!-- ── PAINEL DE PUBLICAÇÃO ── -->
+          <div class="pub-bar" id="pubBar" style="margin:0 0 8px 0;display:none">
+            <div class="pub-status">
+              <div class="pub-dot idle" id="pub-dot"></div>
+              <div>
+                <div class="pub-txt" id="pub-txt">Selecione uma arena</div>
+                <div class="pub-sub" id="pub-sub">—</div>
+              </div>
+            </div>
+            <div class="pub-actions">
+              <span class="pub-fase-badge pb-idle" id="pub-fase-badge" style="display:none"></span>
+              <button class="btn-pub sched" id="btn-agendar" onclick="agendarOverlay()" style="display:none">
+                ⏱ Agendar
+              </button>
+              <button class="btn-pub cancel" id="btn-cancelar-ag" onclick="cancelarAgendamento()" style="display:none">
+                ✕ Cancelar agendamento
+              </button>
+              <button class="btn-pub go" id="btn-publicar" onclick="publicarOverlay()" disabled>
+                🚀 Publicar para jogadores
+              </button>
+            </div>
+          </div>
+
+          <!-- canvas -->
+          <div class="canvas-outer" id="canvasOuter">
+            <video id="editorVideo" preload="metadata" muted playsinline
+              style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"
+              onloadedmetadata="videoCarregou()" onseeked="desenhar()"></video>
+            <img id="editorStream" src="" draggable="false"
+              style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
+            <canvas id="editorCanvas"></canvas>
+            <div class="canvas-hint" id="canvasHint">Selecione uma arena na sidebar</div>
+            <div class="scrubber" id="scrubber" style="display:none">
+              <input type="range" id="seek" min="0" max="100" value="0" step="0.1" oninput="seekTo(this.value)">
+              <div class="scrubber-times">
+                <span id="timeCur">0:00</span>
+                <span style="color:var(--accent)">◀▶ arraste para o frame ideal</span>
+                <span id="timeDur">0:00</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PANEL -->
+        <div class="editor-panel">
+
+          <!-- LINHA DE CONTAGEM -->
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">⚡ LINHA DE CONTAGEM</span>
+              <span id="linha-status" style="font-size:9px;color:var(--text3)">não definida</span>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div>
+                  <div class="form-label">PONTO A</div>
+                  <div class="coords" id="linha-pa">—</div>
+                </div>
+                <div>
+                  <div class="form-label">PONTO B</div>
+                  <div class="coords" id="linha-pb">—</div>
+                </div>
+              </div>
+              <div>
+                <div class="form-label">TOLERÂNCIA (px relativos)</div>
+                <input type="range" id="tolerancia" min="2" max="30" value="8"
+                  style="width:100%;accent-color:var(--accent)" oninput="desenhar();document.getElementById('tol-val').textContent=this.value">
+                <div style="text-align:right;font-size:9px;color:var(--text3)">±<span id="tol-val">8</span>px</div>
+              </div>
+              <div>
+                <div class="form-label">DIREÇÃO DE CONTAGEM</div>
+                <select class="form-input" id="direcao">
+                  <option value="ambas">Ambas as direções</option>
+                  <option value="baixo" selected>De cima para baixo</option>
+                  <option value="cima">De baixo para cima</option>
+                </select>
+              </div>
+              <div>
+                <div class="form-label">COR DA LINHA</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap" id="cores-linha">
+                  <div class="cor-btn sel" data-cor="#00ffe0" style="background:#00ffe0" onclick="setCorLinha(this)"></div>
+                  <div class="cor-btn" data-cor="#ff4d6b" style="background:#ff4d6b" onclick="setCorLinha(this)"></div>
+                  <div class="cor-btn" data-cor="#ffcc00" style="background:#ffcc00" onclick="setCorLinha(this)"></div>
+                  <div class="cor-btn" data-cor="#ffffff" style="background:#fff" onclick="setCorLinha(this)"></div>
+                  <div class="cor-btn" data-cor="#ff6b35" style="background:#ff6b35" onclick="setCorLinha(this)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FAIXAS DE VIA -->
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">🛣 FAIXAS DE VIA</span>
+              <span id="nfaixas-badge" style="font-size:9px;color:var(--text3)">0 faixas</span>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+              <div id="faixas-lista" style="display:flex;flex-direction:column;gap:4px">
+                <div style="font-size:10px;color:var(--text3);text-align:center;padding:8px">
+                  Nenhuma faixa desenhada.<br>Use a ferramenta 🛣 acima.
+                </div>
+              </div>
+              <div style="display:flex;gap:5px">
+                <button class="btn btn-ghost" style="flex:1;font-size:10px" onclick="setFerramenta('faixa')">+ Adicionar Faixa</button>
+                <button class="btn btn-ghost" style="font-size:10px" onclick="renomearFaixas()" title="Renomear todas">✏</button>
+              </div>
+              <div>
+                <div class="form-label">COR PRÓXIMA FAIXA</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap" id="cores-faixa">
+                  <div class="cor-btn sel" data-cor="#00ff96" style="background:#00ff96" onclick="setCorFaixa(this)"></div>
+                  <div class="cor-btn" data-cor="#3eb5ff" style="background:#3eb5ff" onclick="setCorFaixa(this)"></div>
+                  <div class="cor-btn" data-cor="#ffcc00" style="background:#ffcc00" onclick="setCorFaixa(this)"></div>
+                  <div class="cor-btn" data-cor="#ff6b35" style="background:#ff6b35" onclick="setCorFaixa(this)"></div>
+                  <div class="cor-btn" data-cor="#d44dff" style="background:#d44dff" onclick="setCorFaixa(this)"></div>
+                  <div class="cor-btn" data-cor="#ff4d6b" style="background:#ff4d6b" onclick="setCorFaixa(this)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OVERLAY VISUAL -->
+          <div class="card">
+            <div class="card-hd"><span class="card-title">🎨 OVERLAY VISUAL</span></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px">
+                <input type="checkbox" id="chk-labels" checked onchange="desenhar()" style="accent-color:var(--accent)">
+                Labels das faixas
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px">
+                <input type="checkbox" id="chk-tol" checked onchange="desenhar()" style="accent-color:var(--accent)">
+                Zona de tolerância
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px">
+                <input type="checkbox" id="chk-diamond" checked onchange="desenhar()" style="accent-color:var(--accent)">
+                Marcadores de faixa na linha
+              </label>
+              <div>
+                <div class="form-label">ESPESSURA DAS LINHAS</div>
+                <input type="range" id="espessura" min="1" max="5" value="2"
+                  style="width:100%;accent-color:var(--accent)" oninput="desenhar()">
+              </div>
+            </div>
+          </div>
+
+          <!-- MODO DE JOGO -->
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">🎮 MODO DE JOGO</span>
+              <span id="modo-badge" style="font-size:9px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--text2)">—</span>
+            </div>
+            <div class="card-body" style="padding:10px;display:flex;flex-direction:column;gap:8px">
+              <div onclick="setModoJogo('modo_1')" id="modo-btn-1"
+                   style="cursor:pointer;padding:10px 12px;border-radius:6px;border:1px solid var(--border);transition:.2s">
+                <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px">⚡ MODO 1 — Linha Única</div>
+                <div style="font-size:10px;color:var(--text3)">Conta cada veículo que cruza 1 linha. Mais simples, maior volume.</div>
+              </div>
+              <div onclick="setModoJogo('modo_2')" id="modo-btn-2"
+                   style="cursor:pointer;padding:10px 12px;border-radius:6px;border:1px solid var(--border);transition:.2s">
+                <div style="font-size:11px;font-weight:700;color:#ffcc00;margin-bottom:3px">🔱 MODO 2 — Tripla Confirmação (A→B→C)</div>
+                <div style="font-size:10px;color:var(--text3)">Carro só conta se cruzar as 3 linhas em sequência. Contagem rigorosa, zero falsos positivos.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONFIG JSON -->
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">📄 CONFIG JSON</span>
+              <button class="btn btn-ghost" style="padding:2px 8px;font-size:9px" onclick="copiarJSON()">Copiar</button>
+            </div>
+            <div class="card-body" style="padding:8px">
+              <pre class="json-pre" id="jsonPreview">—</pre>
+            </div>
+          </div>
+
+        </div><!-- /panel -->
+      </div><!-- /editor-wrap -->
+    </div><!-- /page-editor -->
+
+    <!-- ═══════════ PAGE LOG ═══════════ -->
+    <div class="page" id="page-log">
+      <div class="page-scroll" id="logContent">
+        <div style="text-align:center;padding:60px;color:var(--text3)">
+          <div style="font-size:32px;margin-bottom:8px">📊</div>
+          Selecione uma arena para ver o log
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /layout -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════════════════════
+const API = 'http://127.0.0.1:8000';  // tudo via main.py (proxy para carbet.py)
+
+let arenas = [];  // carregado de carbet.py /arenas_offline
+
+let arenaAtiva  = null;
+let ferramenta  = 'linha';   // 'linha' | 'faixa' | 'mover'
+let modo        = 'video';   // 'video' | 'stream'
+let corLinha    = '#00ffe0';
+let corFaixa    = '#00ff96';
+let tabAtiva    = 'editor';
+
+// configuração por arena
+let config = {
+  linha: null,       // {ax,ay,bx,by} em coords normalizadas 0-1
+  faixas: [],        // [{id,p1:{x,y},p2:{x,y},cor,label}]
+  overlay: { espessura:2, labels:true, tolerancia:true, diamond:true }
+};
+
+// estado de clique para linha/faixa
+let clickStep  = 0;   // 0 = aguardando primeiro ponto
+let faixaTemp  = null;
+let moverAlvo  = null;
+let undoStack  = [];
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  renderSidebar();
+  setupCanvas();
+  setInterval(pollConn, 3000);
+});
+
+async function setModoJogo(modo) {
+  if (!arenaAtiva) return;
+  try {
+    const r = await fetch(API + `/arenas/${arenaAtiva}/modo_jogo`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({modo})
+    });
+    const d = await r.json();
+    if (d.ok) { atualizarUIModo(modo); }
+  } catch(e) { console.error('Erro ao trocar modo:', e); }
+}
+
+function atualizarUIModo(modo) {
+  const b1 = document.getElementById('modo-btn-1');
+  const b2 = document.getElementById('modo-btn-2');
+  const badge = document.getElementById('modo-badge');
+  if (!b1 || !b2) return;
+  const isM1 = modo === 'modo_1';
+  b1.style.borderColor = isM1 ? 'var(--accent)' : 'var(--border)';
+  b1.style.background  = isM1 ? 'rgba(0,230,118,.07)' : '';
+  b2.style.borderColor = !isM1 ? '#ffcc00' : 'var(--border)';
+  b2.style.background  = !isM1 ? 'rgba(255,204,0,.07)' : '';
+  badge.textContent = isM1 ? 'MODO 1' : 'MODO 2';
+  badge.style.color = isM1 ? 'var(--accent)' : '#ffcc00';
+}
+
+async function pollConn() {
+  try {
+    const r = await fetch(API + '/arenas_offline', { signal: AbortSignal.timeout(2000) });
+    const data = await r.json();
+    arenas = data;
+    document.getElementById('tb-conn').textContent = '🟢 carbet.py online';
+    document.getElementById('btn-modo-stream').disabled = false;
+    renderSidebar();
+    // Se há arena ativa e a lista foi atualizada, atualiza select de vídeos
+    if (arenaAtiva) {
+      const a = arenas.find(x => x.id === arenaAtiva);
+      if (a) atualizarSelectVideos(a);
+    }
+  } catch {
+    document.getElementById('tb-conn').textContent = '⚫ carbet.py offline';
+    document.getElementById('btn-modo-stream').disabled = true;
+    if (!arenas.length) renderSidebar();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════
+function renderSidebar() {
+  const el = document.getElementById('arenaList');
+  el.innerHTML = arenas.map(a => {
+    const nome   = a.meta?.nome   || a.nome   || a.id;
+    const cidade = a.meta?.cidade || a.cidade || '—';
+    const status = a.running ? 'online' : 'offline';
+    return `
+    <div class="arena-item ${arenaAtiva===a.id?'active':''}" onclick="selecionarArena('${a.id}')">
+      <div class="ai-name">
+        <span class="ai-dot dot-${status}"></span>${nome}
+      </div>
+      <div class="ai-meta">${cidade} · ${(a.videos||[]).length} vídeo(s)</div>
+    </div>`;
+  }).join('');
+}
+
+async function selecionarArena(id) {
+  arenaAtiva = id;
+  const a = arenas.find(x => x.id === id);
+  if (!a) return;
+  renderSidebar();
+  const nome   = a.meta?.nome   || a.nome   || a.id;
+  const cidade = a.meta?.cidade || a.cidade || '—';
+  const status = a.running ? 'online' : 'offline';
+  document.getElementById('tb-arena-nome').textContent = nome;
+  const badge = document.getElementById('tb-badge');
+  badge.style.display = 'inline-block';
+  badge.className = 'tb-badge badge-' + status;
+  badge.textContent = status.toUpperCase();
+
+  await carregarConfig(id);
+
+  // Carregar modo de jogo atual
+  fetch(API + `/arenas/${id}/modo_jogo`).then(r=>r.json()).then(d=>atualizarUIModo(d.modo||'modo_1')).catch(()=>atualizarUIModo('modo_1'));
+  // Inicia polling do status de publicação (a cada 3s)
+  if (_pubPollTimer) clearInterval(_pubPollTimer);
+  await atualizarStatusPublicacao();
+  _pubPollTimer = setInterval(atualizarStatusPublicacao, 3000);
+
+  if (tabAtiva === 'editor') iniciarEditor(a);
+  else renderLog(a);
+}
+
+function atualizarSelectVideos(arena) {
+  // Atualiza dropdown de vídeos se existir
+  const sels = document.querySelectorAll('[data-video-select]');
+  sels.forEach(sel => {
+    sel.innerHTML = '<option value="">Selecione o vídeo...</option>' +
+      (arena.videos || []).map(v =>
+        `<option value="${v}" ${v === arena.video_atual ? 'selected' : ''}>${v}</option>`
+      ).join('');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// CARREGAR / SALVAR CONFIG
+// ══════════════════════════════════════════════════════════════
+async function carregarConfig(id) {
+  try {
+    const r = await fetch(API + `/arenas/${id}/config_overlay`,
+                          { signal: AbortSignal.timeout(2000) });
+    const data = await r.json();
+    if (data && (data.linha_contagem || (data.faixas && data.faixas.length))) {
+      config = {
+        linha:   data.linha_contagem || null,
+        faixas:  data.faixas || [],
+        overlay: data.overlay || { espessura:2, labels:true, tolerancia:true, diamond:true },
+      };
+    } else {
+      resetConfig();
+    }
+  } catch {
+    const salvo = localStorage.getItem('datlas_config_' + id);
+    if (salvo) { try { config = JSON.parse(salvo); } catch { resetConfig(); } }
+    else resetConfig();
+  }
+  atualizarPainel();
+  desenhar();
+}
+
+function resetConfig() {
+  config = { linha: null, faixas: [], overlay: { espessura:2, labels:true, tolerancia:true, diamond:true } };
+}
+
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE PUBLICAÇÃO
+// ══════════════════════════════════════════════════════════════
+let _pubPollTimer = null;
+
+async function atualizarStatusPublicacao() {
+  if (!arenaAtiva) return;
+  try {
+    const r = await fetch(API + `/arenas/${arenaAtiva}/overlay_status`,
+                          { signal: AbortSignal.timeout(2000) });
+    const s = await r.json();
+    renderPubBar(s);
+  } catch {
+    renderPubBar(null);
+  }
+}
+
+function renderPubBar(s) {
+  const bar = document.getElementById('pubBar');
+  bar.style.display = 'flex';
+
+  const dot   = document.getElementById('pub-dot');
+  const txt   = document.getElementById('pub-txt');
+  const sub   = document.getElementById('pub-sub');
+  const badge = document.getElementById('pub-fase-badge');
+  const btnPub   = document.getElementById('btn-publicar');
+  const btnAg    = document.getElementById('btn-agendar');
+  const btnCanAg = document.getElementById('btn-cancelar-ag');
+
+  if (!s) {
+    dot.className = 'pub-dot idle';
+    txt.textContent = 'carbet.py offline';
+    sub.textContent = 'não é possível verificar estado';
+    btnPub.disabled = true;
+    badge.style.display = 'none';
+    btnAg.style.display = btnCanAg.style.display = 'none';
+    return;
+  }
+
+  const { fase, em_jogo, pendente, agendado, tem_live } = s;
+
+  // Badge de fase
+  const FASE_MAP = {
+    apostas: ['APOSTAS', 'pb-apostas'],
+    freeze:  ['FREEZE',  'pb-freeze'],
+    evento:  ['AO VIVO', 'pb-evento'],
+    preview: ['PREVIEW', 'pb-preview'],
+    resultado: ['RESULTADO', 'pb-preview'],
+  };
+  if (fase && FASE_MAP[fase]) {
+    badge.style.display = '';
+    badge.className = 'pub-fase-badge ' + FASE_MAP[fase][1];
+    badge.textContent = FASE_MAP[fase][0];
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // Estado principal
+  if (agendado) {
+    dot.className = 'pub-dot warn';
+    txt.textContent = 'Publicação agendada para após a rodada';
+    sub.textContent = `Fase atual: ${fase || '—'} · Será publicado automaticamente`;
+    btnPub.disabled = true;
+    btnAg.style.display = 'none';
+    btnCanAg.style.display = '';
+  } else if (em_jogo) {
+    dot.className = 'pub-dot err';
+    txt.textContent = 'Arena em jogo — publicação bloqueada';
+    sub.textContent = `Fase: ${fase} · Aguarde o fim da rodada ou agende`;
+    btnPub.disabled = true;
+    btnAg.style.display = pendente ? '' : 'none';
+    btnCanAg.style.display = 'none';
+  } else if (pendente) {
+    dot.className = 'pub-dot warn';
+    txt.textContent = 'Rascunho com alterações não publicadas';
+    sub.textContent = 'Jogadores ainda veem a versão anterior';
+    btnPub.disabled = false;
+    btnAg.style.display = 'none';
+    btnCanAg.style.display = 'none';
+  } else if (!tem_live && !pendente) {
+    dot.className = 'pub-dot idle';
+    txt.textContent = 'Nenhuma configuração publicada ainda';
+    sub.textContent = 'Salve e publique para ativar o overlay no frontend';
+    btnPub.disabled = true;
+    btnAg.style.display = 'none';
+    btnCanAg.style.display = 'none';
+  } else {
+    dot.className = 'pub-dot ok';
+    txt.textContent = 'Overlay publicado e sincronizado';
+    sub.textContent = `Fase: ${fase || 'aguardando rodada'} · Jogadores veem a versão atual`;
+    btnPub.disabled = true;  // nada pendente, desabilita
+    btnAg.style.display = 'none';
+    btnCanAg.style.display = 'none';
+  }
+}
+
+async function publicarOverlay() {
+  const btn = document.getElementById('btn-publicar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Publicando...';
+  try {
+    const r = await fetch(API + `/arenas/${arenaAtiva}/publicar_overlay`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}',
+    });
+    const res = await r.json();
+
+    if (res.ok) {
+      toast(`🚀 Publicado! ${res.broadcast} cliente(s) atualizado(s)`);
+      await atualizarStatusPublicacao();
+    } else if (res.motivo === 'em_jogo') {
+      toast(`⛔ Arena em jogo (${res.fase}) — não publicado`, 'err');
+      btn.textContent = '🚀 Publicar para jogadores';
+      await atualizarStatusPublicacao();
+    } else {
+      toast('Erro: ' + (res.msg || res.motivo), 'err');
+      btn.textContent = '🚀 Publicar para jogadores';
+      btn.disabled = false;
+    }
+  } catch {
+    toast('Erro de conexão', 'err');
+    btn.textContent = '🚀 Publicar para jogadores';
+    btn.disabled = false;
+  }
+}
+
+async function agendarOverlay() {
+  try {
+    const r = await fetch(API + `/arenas/${arenaAtiva}/agendar_overlay`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}',
+    });
+    const res = await r.json();
+    if (res.ok) {
+      toast('⏱ Agendado — será publicado no início da próxima rodada');
+      await atualizarStatusPublicacao();
+    } else {
+      toast('Erro ao agendar: ' + (res.msg || ''), 'err');
+    }
+  } catch {
+    toast('Erro de conexão', 'err');
+  }
+}
+
+async function cancelarAgendamento() {
+  try {
+    await fetch(API + `/arenas/${arenaAtiva}/cancelar_agendamento`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}',
+    });
+    toast('Agendamento cancelado');
+    await atualizarStatusPublicacao();
+  } catch {
+    toast('Erro de conexão', 'err');
+  }
+}
+
+async function capturarFundo() {
+  if (!arenaId) return alert('Selecione uma arena primeiro');
+  if (!confirm('A pista está VAZIA? Este frame será usado como fundo de referência para detecção.')) return;
+  try {
+    const r = await fetch(`http://localhost:8001/arenas/${arenaId}/capturar_fundo`, {method:'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      alert('✓ Fundo capturado! A detecção agora usará este frame como referência.');
+    } else {
+      alert('Erro: ' + (d.erro || 'desconhecido'));
+    }
+  } catch(e) {
+    alert('Erro ao conectar com carbet.py: ' + e.message);
+  }
+}
+
+async function salvarConfig() {
+  if (!arenaAtiva) return;
+  const btn = document.getElementById('btn-salvar');
+  btn.textContent = '⏳ Salvando...'; btn.disabled = true;
+
+  const tol = parseInt(document.getElementById('tolerancia')?.value || 8);
+  const dir = document.getElementById('direcao')?.value || 'ambas';
+
+  const payload = {
+    linha_contagem: config.linha ? { ...config.linha, tolerancia: tol, direcao: dir } : null,
+    faixas:  config.faixas,
+    overlay: config.overlay,
+  };
+
+  let clientes = 0;
+  try {
+    // POST main.py → proxy carbet.py + broadcast WebSocket
+    const r = await fetch(API + `/arenas/${arenaAtiva}/config_overlay`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const res = await r.json();
+    clientes = res.clientes || 0;
+    localStorage.setItem('datlas_config_' + arenaAtiva, JSON.stringify(config));
+    toast(`✓ Rascunho salvo — use "Publicar" para liberar ao frontend`);
+    btn.textContent = '✓ Salvar Arena';
+    // Marca que há alterações pendentes de publicação
+    await atualizarStatusPublicacao();
+  } catch {
+    // Fallback: tenta salvar direto no carbet.py
+    try {
+      await fetch(API + `/arenas/${arenaAtiva}/config_overlay`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload),
+      });
+      localStorage.setItem('datlas_config_' + arenaAtiva, JSON.stringify(config));
+      toast('✓ Salvo no carbet.py (main.py offline)');
+      btn.textContent = '✓ Salvar Arena';
+    } catch {
+      localStorage.setItem('datlas_config_' + arenaAtiva, JSON.stringify(config));
+      toast('⚠ Salvo localmente (servidores offline)', 'err');
+      btn.textContent = '✓ Salvar Arena'; btn.disabled = false;
+    }
+  }
+}
+
+function exportarConfig() {
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `arena_${arenaAtiva}_config.json`;
+  a.click();
+}
+
+function copiarJSON() {
+  navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+  toast('JSON copiado');
+}
+
+function marcarAlterado() {
+  document.getElementById('btn-salvar').disabled = false;
+  atualizarJsonPreview();
+}
+
+function atualizarJsonPreview() {
+  document.getElementById('jsonPreview').textContent = JSON.stringify(config, null, 2);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EDITOR — CANVAS
+// ══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('editorCanvas');
+const ctx    = canvas.getContext('2d');
+
+function setupCanvas() {
+  const outer = document.getElementById('canvasOuter');
+  const obs   = new ResizeObserver(() => { resizeCanvas(); desenhar(); });
+  obs.observe(outer);
+  resizeCanvas();
+
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mouseup',   onMouseUp);
+  canvas.addEventListener('mouseleave', () => { hoverPt = null; desenhar(); });
+}
+
+function resizeCanvas() {
+  const outer = document.getElementById('canvasOuter');
+  canvas.width  = outer.clientWidth;
+  canvas.height = outer.clientHeight;
+}
+
+// coords normalizadas → canvas
+function n2c(nx, ny) {
+  return { x: nx * canvas.width, y: ny * canvas.height };
+}
+// canvas → normalizadas
+function c2n(cx, cy) {
+  return { x: cx / canvas.width, y: cy / canvas.height };
+}
+
+function getCanvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+let hoverPt = null;
+let dragging = null;
+
+function onMouseDown(e) {
+  if (!arenaAtiva) return;
+  const pt = getCanvasPos(e);
+  const n  = c2n(pt.x, pt.y);
+
+  if (ferramenta === 'mover') {
+    dragging = encontrarPontoProximo(pt);
+    return;
+  }
+
+  if (ferramenta === 'linha') {
+    undoStack.push(JSON.stringify(config));
+    if (clickStep === 0) {
+      config.linha = { ax: n.x, ay: n.y, bx: n.x, by: n.y };
+      clickStep = 1;
+      setHint('Clique no ponto B da linha de contagem');
+    } else {
+      config.linha.bx = n.x;
+      config.linha.by = n.y;
+      clickStep = 0;
+      setHint('Linha definida. Ajuste os pontos com ✥ Mover se necessário.');
+      atualizarPainel();
+      marcarAlterado();
+    }
+    desenhar();
+    return;
+  }
+
+  if (ferramenta === 'faixa') {
+    undoStack.push(JSON.stringify(config));
+    if (clickStep === 0) {
+      faixaTemp = { p1: n, p2: n };
+      clickStep = 1;
+      setHint('Clique no ponto final da linha de faixa');
+    } else {
+      const id = 'f' + Date.now();
+      const label = 'Faixa ' + (config.faixas.length + 1);
+      config.faixas.push({ id, p1: faixaTemp.p1, p2: n, cor: corFaixa, label });
+      faixaTemp = null;
+      clickStep = 0;
+      setHint('Faixa adicionada. Clique para adicionar outra ou mude a ferramenta.');
+      atualizarPainel();
+      marcarAlterado();
+    }
+    desenhar();
+    return;
+  }
+}
+
+function onMouseMove(e) {
+  if (!arenaAtiva) return;
+  const pt = getCanvasPos(e);
+  const n  = c2n(pt.x, pt.y);
+
+  if (dragging) {
+    applyDrag(dragging, n);
+    atualizarPainel();
+    marcarAlterado();
+    desenhar();
+    return;
+  }
+
+  // live preview ao desenhar
+  if (clickStep === 1) {
+    if (ferramenta === 'linha' && config.linha) {
+      config.linha.bx = n.x; config.linha.by = n.y;
+    }
+    if (ferramenta === 'faixa' && faixaTemp) {
+      faixaTemp.p2 = n;
+    }
+    desenhar();
+    return;
+  }
+
+  // highlight ponto próximo
+  hoverPt = ferramenta === 'mover' ? encontrarPontoProximo(pt) : null;
+  canvas.style.cursor = hoverPt ? 'grab' : ferramenta === 'mover' ? 'default' : 'crosshair';
+  desenhar();
+}
+
+function onMouseUp() {
+  dragging = null;
+}
+
+function applyDrag(alvo, n) {
+  if (alvo.tipo === 'linha-a') { config.linha.ax = n.x; config.linha.ay = n.y; }
+  if (alvo.tipo === 'linha-b') { config.linha.bx = n.x; config.linha.by = n.y; }
+  if (alvo.tipo === 'faixa-p1') config.faixas.find(f => f.id === alvo.id).p1 = n;
+  if (alvo.tipo === 'faixa-p2') config.faixas.find(f => f.id === alvo.id).p2 = n;
+}
+
+function encontrarPontoProximo(pt) {
+  const RAIO = 14;
+  const pts = [];
+  if (config.linha) {
+    pts.push({ tipo:'linha-a', ...n2c(config.linha.ax, config.linha.ay) });
+    pts.push({ tipo:'linha-b', ...n2c(config.linha.bx, config.linha.by) });
+  }
+  config.faixas.forEach(f => {
+    pts.push({ tipo:'faixa-p1', id:f.id, ...n2c(f.p1.x, f.p1.y) });
+    pts.push({ tipo:'faixa-p2', id:f.id, ...n2c(f.p2.x, f.p2.y) });
+  });
+  return pts.find(p => Math.hypot(p.x - pt.x, p.y - pt.y) < RAIO) || null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DESENHO
+// ══════════════════════════════════════════════════════════════
+function desenhar() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!arenaAtiva) return;
+
+  const esp      = parseInt(document.getElementById('espessura')?.value || 2);
+  const tol      = parseInt(document.getElementById('tolerancia')?.value || 8);
+  const labels   = document.getElementById('chk-labels')?.checked ?? true;
+  const showTol  = document.getElementById('chk-tol')?.checked ?? true;
+  const diamond  = document.getElementById('chk-diamond')?.checked ?? true;
+
+  // ── desenha faixas ──────────────────────────────────────────
+  config.faixas.forEach((f, i) => {
+    const p1 = n2c(f.p1.x, f.p1.y);
+    const p2 = n2c(f.p2.x, f.p2.y);
+    drawDashedLine(p1, p2, f.cor, esp, [6, 5]);
+    // labels desativados (faixas são bordas de via, label seria confuso)
+    drawHandle(p1, f.cor, hoverPt?.tipo === 'faixa-p1' && hoverPt.id === f.id);
+    drawHandle(p2, f.cor, hoverPt?.tipo === 'faixa-p2' && hoverPt.id === f.id);
+  });
+
+  // faixa sendo desenhada (preview)
+  if (faixaTemp && clickStep === 1) {
+    const p1 = n2c(faixaTemp.p1.x, faixaTemp.p1.y);
+    const p2 = n2c(faixaTemp.p2.x, faixaTemp.p2.y);
+    drawDashedLine(p1, p2, corFaixa + '80', esp, [4, 4]);
+    drawHandle(p1, corFaixa, false);
+  }
+
+  // ── desenha linha de contagem ───────────────────────────────
+  if (config.linha) {
+    const pa = n2c(config.linha.ax, config.linha.ay);
+    const pb = n2c(config.linha.bx, config.linha.by);
+
+    // zona de tolerância
+    if (showTol) {
+      const tolNorm = tol / Math.max(canvas.width, canvas.height) * 80;
+      const dx = pb.x - pa.x, dy = pb.y - pa.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy/len * tol, ny = dx/len * tol;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(pa.x + nx, pa.y + ny);
+      ctx.lineTo(pb.x + nx, pb.y + ny);
+      ctx.lineTo(pb.x - nx, pb.y - ny);
+      ctx.lineTo(pa.x - nx, pa.y - ny);
+      ctx.closePath();
+      ctx.fillStyle = hexToRgba(corLinha, .08);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // linha principal
+    ctx.save();
+    ctx.shadowColor = corLinha;
+    ctx.shadowBlur  = 8;
+    ctx.strokeStyle = corLinha;
+    ctx.lineWidth   = esp + 1;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+    ctx.restore();
+
+    // label LINHA DE CONTAGEM
+    const mid = lerp2D(pa, pb, .5);
+    drawLabel({ x: mid.x, y: mid.y - 12 }, '⚡ LINHA DE CONTAGEM', corLinha, true);
+
+    // marcadores de faixa na linha
+    if (diamond) {
+      config.faixas.forEach(f => {
+        const intersect = lineLineIntersect(pa, pb,
+          n2c(f.p1.x, f.p1.y), n2c(f.p2.x, f.p2.y));
+        if (intersect) drawDiamond(intersect, f.cor);
+      });
+    }
+
+    // seta de direção
+    drawArrow(pa, pb, corLinha);
+
+    // handles
+    drawHandle(pa, corLinha, hoverPt?.tipo === 'linha-a');
+    drawHandle(pb, corLinha, hoverPt?.tipo === 'linha-b');
+  }
+}
+
+// ── primitivas ─────────────────────────────────────────────────
+function drawDashedLine(p1, p2, color, w, dash) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = w;
+  ctx.setLineDash(dash);
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 4;
+  ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  ctx.restore();
+}
+
+function drawHandle(pt, color, hover) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(pt.x, pt.y, hover ? 8 : 5, 0, Math.PI*2);
+  ctx.fillStyle   = hover ? color : 'rgba(0,0,0,.7)';
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = hover ? 12 : 6;
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawLabel(pt, text, color, bold = false) {
+  ctx.save();
+  ctx.font = `${bold?'700':'600'} 10px 'JetBrains Mono',monospace`;
+  const tw = ctx.measureText(text).width + 10;
+  ctx.fillStyle = 'rgba(0,0,0,.75)';
+  ctx.beginPath();
+  ctx.roundRect(pt.x - tw/2, pt.y - 9, tw, 14, 3);
+  ctx.fill();
+  ctx.fillStyle   = color;
+  ctx.textAlign   = 'center';
+  ctx.textBaseline= 'middle';
+  ctx.fillText(text, pt.x, pt.y);
+  ctx.restore();
+}
+
+function drawDiamond(pt, color) {
+  ctx.save();
+  ctx.translate(pt.x, pt.y);
+  ctx.rotate(Math.PI/4);
+  ctx.fillStyle   = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 8;
+  ctx.fillRect(-5, -5, 10, 10);
+  ctx.restore();
+}
+
+function drawArrow(pa, pb, color) {
+  const mid = lerp2D(pa, pb, .78);
+  const ang = Math.atan2(pb.y - pa.y, pb.x - pa.x);
+  ctx.save();
+  ctx.translate(mid.x, mid.y);
+  ctx.rotate(ang);
+  ctx.fillStyle   = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 6;
+  ctx.beginPath();
+  ctx.moveTo(10, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// ── utilidades geométricas ─────────────────────────────────────
+function lerp2D(a, b, t) { return { x: a.x + (b.x-a.x)*t, y: a.y + (b.y-a.y)*t }; }
+
+function lineLineIntersect(a, b, c, d) {
+  const r = {x: b.x-a.x, y: b.y-a.y};
+  const s = {x: d.x-c.x, y: d.y-c.y};
+  const denom = r.x*s.y - r.y*s.x;
+  if (Math.abs(denom) < 1e-10) return null;
+  const t = ((c.x-a.x)*s.y - (c.y-a.y)*s.x) / denom;
+  const u = ((c.x-a.x)*r.y - (c.y-a.y)*r.x) / denom;
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+    return { x: a.x + t*r.x, y: a.y + t*r.y };
+  return null;
+}
+
+function hexToRgba(hex, a) {
+  hex = hex.replace('#','');
+  const r = parseInt(hex.slice(0,2),16);
+  const g = parseInt(hex.slice(2,4),16);
+  const b = parseInt(hex.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// VÍDEO
+// ══════════════════════════════════════════════════════════════
+async function iniciarEditor(arena) {
+  setHint('Selecione uma ferramenta e clique no frame para calibrar');
+  const vid = document.getElementById('editorVideo');
+  const img = document.getElementById('editorStream');
+  const scr = document.getElementById('scrubber');
+
+  if (modo === 'stream') {
+    // MJPEG ao vivo do carbet.py (porta 8001)
+    vid.style.display = 'none';
+    img.style.display = 'block';
+    scr.style.display = 'none';
+    img.src = `${API}/arenas/${arena.id}/stream?t=${Date.now()}`;
+    setHint('📡 Stream ao vivo — clique para calibrar');
+  } else {
+    // Vídeo gravado do carbet.py para calibrar offline
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    scr.style.display = 'block';
+    const vidAtual = arena.video_atual || (arena.videos && arena.videos[0]) || '';
+    const url = `${API}/arenas/${arena.id}/videos/${encodeURIComponent(vidAtual)}`;
+    if (vidAtual) { vid.src = url; vid.load(); }
+    else {
+      // Sem vídeo: tenta frame estático do stream
+      vid.src = '';
+      scr.style.display = 'none';
+      try {
+        const fr = await fetch(`${API}/arenas/${arena.id}/frame_limpo`,
+                               { signal: AbortSignal.timeout(1500) });
+        if (fr.ok) {
+          vid.style.display = 'none';
+          img.style.display = 'block';
+          img.src = `${API}/arenas/${arena.id}/frame_limpo?t=${Date.now()}`;
+          setHint('Frame capturado ao vivo — clique para calibrar');
+        }
+      } catch {}
+    }
+  }
+}
+
+function videoCarregou() {
+  const vid = document.getElementById('editorVideo');
+  const seek = document.getElementById('seek');
+  seek.max = vid.duration || 100;
+  document.getElementById('timeDur').textContent = fmtTime(vid.duration);
+  vid.currentTime = vid.duration * 0.3;
+}
+
+function seekTo(v) {
+  const vid = document.getElementById('editorVideo');
+  vid.currentTime = parseFloat(v);
+  document.getElementById('timeCur').textContent = fmtTime(vid.currentTime);
+}
+
+function setModo(m) {
+  modo = m;
+  document.getElementById('btn-modo-video').classList.toggle('active', m==='video');
+  document.getElementById('btn-modo-stream').classList.toggle('active', m==='stream');
+  const a = arenas.find(x => x.id === arenaAtiva);
+  if (a) iniciarEditor(a);
+}
+
+function fmtTime(s) {
+  if (!s) return '0:00';
+  return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+}
+
+// ══════════════════════════════════════════════════════════════
+// FERRAMENTAS
+// ══════════════════════════════════════════════════════════════
+function setFerramenta(f) {
+  ferramenta = f;
+  clickStep  = 0;
+  faixaTemp  = null;
+  ['linha','faixa','mover'].forEach(t => {
+    document.getElementById('tool-' + t).classList.toggle('active', t === f);
+  });
+  const hints = {
+    linha: 'Clique no ponto A da linha de contagem',
+    faixa: 'Clique no ponto A da linha divisória de faixa',
+    mover: 'Clique e arraste qualquer ponto para reposicioná-lo',
+  };
+  setHint(hints[f]);
+  canvas.style.cursor = f === 'mover' ? 'default' : 'crosshair';
+}
+
+function setCorLinha(el) {
+  corLinha = el.dataset.cor;
+  document.querySelectorAll('#cores-linha .cor-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  desenhar();
+}
+
+function setCorFaixa(el) {
+  corFaixa = el.dataset.cor;
+  document.querySelectorAll('#cores-faixa .cor-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  config = JSON.parse(undoStack.pop());
+  atualizarPainel();
+  marcarAlterado();
+  desenhar();
+  toast('Desfeito');
+}
+
+function limpar() {
+  if (!confirm('Limpar toda a configuração desta arena?')) return;
+  undoStack.push(JSON.stringify(config));
+  resetConfig();
+  atualizarPainel();
+  marcarAlterado();
+  desenhar();
+}
+
+function setHint(txt) {
+  document.getElementById('canvasHint').textContent = txt;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PAINEL
+// ══════════════════════════════════════════════════════════════
+function atualizarPainel() {
+  // linha de contagem
+  if (config.linha) {
+    const pa = config.linha;
+    document.getElementById('linha-pa').textContent =
+      `${(pa.ax*100).toFixed(1)}%, ${(pa.ay*100).toFixed(1)}%`;
+    document.getElementById('linha-pb').textContent =
+      `${(pa.bx*100).toFixed(1)}%, ${(pa.by*100).toFixed(1)}%`;
+    document.getElementById('linha-status').textContent = '✓ definida';
+    document.getElementById('linha-status').style.color = 'var(--accent)';
+  } else {
+    document.getElementById('linha-pa').textContent = '—';
+    document.getElementById('linha-pb').textContent = '—';
+    document.getElementById('linha-status').textContent = 'não definida';
+    document.getElementById('linha-status').style.color = 'var(--text3)';
+  }
+
+  // faixas
+  document.getElementById('nfaixas-badge').textContent = config.faixas.length + ' faixa(s)';
+  const lista = document.getElementById('faixas-lista');
+  if (!config.faixas.length) {
+    lista.innerHTML = '<div style="font-size:10px;color:var(--text3);text-align:center;padding:8px">Nenhuma faixa desenhada.<br>Use a ferramenta 🛣 acima.</div>';
+  } else {
+    lista.innerHTML = config.faixas.map(f => `
+      <div class="faixa-item">
+        <div class="faixa-color" style="background:${f.cor}"></div>
+        <div class="faixa-label">${f.label}</div>
+        <button class="faixa-del" onclick="deletarFaixa('${f.id}')">✕</button>
+      </div>
+    `).join('');
+  }
+
+  atualizarJsonPreview();
+}
+
+function deletarFaixa(id) {
+  undoStack.push(JSON.stringify(config));
+  config.faixas = config.faixas.filter(f => f.id !== id);
+  // renumerar labels
+  config.faixas.forEach((f, i) => { if (f.label.startsWith('Faixa ')) f.label = 'Faixa ' + (i+1); });
+  atualizarPainel();
+  marcarAlterado();
+  desenhar();
+}
+
+function renomearFaixas() {
+  config.faixas.forEach((f, i) => {
+    const novo = prompt(`Nome da ${f.label}:`, f.label);
+    if (novo) f.label = novo;
+  });
+  atualizarPainel();
+  marcarAlterado();
+  desenhar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════
+function setTab(t) {
+  tabAtiva = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.getElementById('page-' + t).classList.add('active');
+  if (t === 'log' && arenaAtiva) renderLog(arenas.find(a => a.id === arenaAtiva));
+}
+
+// ══════════════════════════════════════════════════════════════
+// LOG PC
+// ══════════════════════════════════════════════════════════════
+function gerarLogSimulado(arena, horas) {
+  // Simula dados reais — em produção vem de apiGet(`/arenas/${id}/log?horas=${horas}`)
+  const eventos = [];
+  const now = Date.now();
+  const tipos = ['carro','carro','carro','moto','carro','caminhão','carro','moto','ônibus','carro'];
+  let total = 0, erros = 0, car = 0, moto = 0, truck = 0, bus = 0;
+  const fluxoPorHora = [];
+
+  for (let h = horas; h >= 0; h--) {
+    const base = arena.status === 'offline' ? 0
+               : arena.status === 'idle'    ? 5
+               : 20 + Math.floor(Math.random() * 40);
+    const count = base + Math.floor(Math.random() * base * .5);
+    fluxoPorHora.push({ hora: h, count });
+    total += count;
+    car   += Math.floor(count * .55);
+    moto  += Math.floor(count * .20);
+    truck += Math.floor(count * .15);
+    bus   += Math.floor(count * .10);
+  }
+
+  // gera eventos de log
+  if (arena.status === 'offline') {
+    eventos.push({ ts: now - 3600000, tipo:'err',  msg:'<b>Câmera desconectada</b> — timeout após 30s sem frames' });
+    eventos.push({ ts: now - 7200000, tipo:'err',  msg:'<b>FPS crítico</b> — detectado 2fps (mínimo: 10fps)' });
+    erros = 2;
+  }
+  if (arena.status === 'idle') {
+    eventos.push({ ts: now - 1800000, tipo:'warn', msg:'Arena <b>sem partidas ativas</b> — log contínuo habilitado' });
+    erros = 0;
+  }
+  eventos.push({ ts: now - 900000, tipo:'info', msg:`<b>${Math.floor(total/horas*2)}</b> veículos contados nas últimas 2h` });
+  eventos.push({ ts: now - 600000, tipo:'info', msg:'Modelo YOLO: confiança média <b>94.2%</b>' });
+  eventos.push({ ts: now - 400000, tipo:'info', msg:`ByteTrack: <b>${car + moto + truck + bus}</b> IDs únicos rastreados` });
+  if (Math.random() > .5) {
+    eventos.push({ ts: now - 200000, tipo:'warn', msg:'<b>Oclusão detectada</b> — veículo parcialmente coberto por 3s' });
+    erros++;
+  }
+  eventos.push({ ts: now - 60000, tipo:'info', msg:'Heartbeat OK — CPU <b>42%</b>, RAM <b>3.1GB</b>, GPU <b>61%</b>' });
+  eventos.push({ ts: now - 10000, tipo:'debug', msg:'Frame processado em <b>28ms</b> (35fps)' });
+
+  // classificação
+  const fluxoMedio = total / horas;
+  const classe = fluxoMedio < 3  ? { label:'🔴 Fraco',   cor:'#ef4444' }
+               : fluxoMedio < 15 ? { label:'🟡 Médio',   cor:'#f59e0b' }
+               : fluxoMedio < 35 ? { label:'🟢 Forte',   cor:'#00e87a' }
+               :                   { label:'🔵 Crítico', cor:'#3eb5ff' };
+
+  const uptime = arena.status === 'offline' ? 34 : arena.status === 'idle' ? 78 : 97;
+
+  return { total, fluxoMedio: fluxoMedio.toFixed(1), erros, car, moto, truck, bus,
+           fluxoPorHora, classe, uptime, eventos: eventos.sort((a,b)=>b.ts-a.ts) };
+}
+
+function renderLog(arena) {
+  const periodo = parseInt(document.querySelector('#logpc-periodo')?.value || 24);
+  const dados   = gerarLogSimulado(arena, periodo);
+  const content = document.getElementById('logContent');
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:16px;font-weight:800">${arena.nome}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">ID: ${arena.id} · ${arena.cidade}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="logpc-periodo" class="form-input" style="width:130px" onchange="renderLog(arenas.find(a=>a.id==='${arena.id}'))">
+          <option value="1">Última 1h</option>
+          <option value="6">Últimas 6h</option>
+          <option value="24" ${periodo===24?'selected':''}>Últimas 24h</option>
+          <option value="168">7 dias</option>
+        </select>
+        <button class="btn btn-ghost" style="font-size:11px" onclick="renderLog(arenas.find(a=>a.id==='${arena.id}'))">↻</button>
+        <button class="btn btn-ghost" style="font-size:11px" onclick="exportarLog('${arena.id}')">↓ Export</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">STATUS</div>
+        <div class="kpi-val ${arena.status==='online'?'ok':arena.status==='idle'?'warn':'err'}" style="font-size:13px;margin:6px 0">
+          ${arena.status==='online'?'🟢 ONLINE':arena.status==='idle'?'🟡 IDLE':'🔴 OFFLINE'}
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">FLUXO MÉDIO</div>
+        <div class="kpi-val ok">${dados.fluxoMedio}</div>
+        <div class="kpi-sub">veíc/min</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">TOTAL CONTADO</div>
+        <div class="kpi-val">${dados.total.toLocaleString('pt-BR')}</div>
+        <div class="kpi-sub">no período</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">UPTIME</div>
+        <div class="kpi-val ${dados.uptime>90?'ok':dados.uptime>60?'warn':'err'}">${dados.uptime}%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">ERROS</div>
+        <div class="kpi-val ${dados.erros===0?'ok':dados.erros<3?'warn':'err'}">${dados.erros}</div>
+        <div class="kpi-sub">detectados</div>
+      </div>
+    </div>
+
+    <!-- charts + classificação -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">📈 Fluxo por Hora</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="logChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">🚦 Classificação de Fluxo</span></div>
+        <div class="card-body">
+          ${renderFlowBars(dados)}
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <div class="form-label">CLASSIFICAÇÃO ATUAL</div>
+            <div style="font-size:20px;font-weight:800;color:${dados.classe.cor}">${dados.classe.label}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tipos -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hd"><span class="card-title">🚗 Tipos Detectados</span></div>
+      <div class="card-body">
+        <div class="type-grid">
+          <div class="type-card"><div class="type-icon">🚗</div><div class="type-val">${dados.car.toLocaleString('pt-BR')}</div><div class="type-lbl">CARROS</div></div>
+          <div class="type-card"><div class="type-icon">🏍</div><div class="type-val">${dados.moto.toLocaleString('pt-BR')}</div><div class="type-lbl">MOTOS</div></div>
+          <div class="type-card"><div class="type-icon">🚛</div><div class="type-val">${dados.truck.toLocaleString('pt-BR')}</div><div class="type-lbl">CAMINHÕES</div></div>
+          <div class="type-card"><div class="type-icon">🚌</div><div class="type-val">${dados.bus.toLocaleString('pt-BR')}</div><div class="type-lbl">ÔNIBUS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- log eventos -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">📋 Log de Eventos</span>
+        <div style="display:flex;gap:6px">
+          <select id="logpc-filtro" class="form-input" style="width:110px;padding:3px 7px;font-size:10px" onchange="filtrarLog()">
+            <option value="todos">Todos</option>
+            <option value="err">Erros</option>
+            <option value="warn">Avisos</option>
+            <option value="info">Info</option>
+            <option value="debug">Debug</option>
+          </select>
+        </div>
+      </div>
+      <div id="logEventos" style="max-height:300px;overflow-y:auto">
+        ${renderEventos(dados.eventos, 'todos')}
+      </div>
+    </div>
+  `;
+
+  // guarda eventos para filtro
+  window._logEventos = dados.eventos;
+
+  // desenha chart
+  setTimeout(() => desenharChart(dados.fluxoPorHora), 50);
+}
+
+function renderFlowBars(dados) {
+  const t = dados.total || 1;
+  const fraco  = Math.round(dados.fluxoPorHora.filter(h => h.count < 3).length / dados.fluxoPorHora.length * 100);
+  const medio  = Math.round(dados.fluxoPorHora.filter(h => h.count >= 3 && h.count < 15).length / dados.fluxoPorHora.length * 100);
+  const forte  = 100 - fraco - medio;
+  return `
+    <div class="flow-bar-row">
+      <span class="flow-bar-label">🔴 Fraco</span>
+      <div class="flow-bar-track"><div class="flow-bar-fill" style="width:${fraco}%;background:#ef4444"></div></div>
+      <span class="flow-bar-pct">${fraco}%</span>
+    </div>
+    <div class="flow-bar-row">
+      <span class="flow-bar-label">🟡 Médio</span>
+      <div class="flow-bar-track"><div class="flow-bar-fill" style="width:${medio}%;background:#f59e0b"></div></div>
+      <span class="flow-bar-pct">${medio}%</span>
+    </div>
+    <div class="flow-bar-row">
+      <span class="flow-bar-label">🟢 Forte</span>
+      <div class="flow-bar-track"><div class="flow-bar-fill" style="width:${forte}%;background:#00e87a"></div></div>
+      <span class="flow-bar-pct">${forte}%</span>
+    </div>
+  `;
+}
+
+function renderEventos(eventos, filtro) {
+  const filtrados = filtro === 'todos' ? eventos : eventos.filter(e => e.tipo === filtro);
+  if (!filtrados.length) return '<div style="padding:16px;text-align:center;color:var(--text3);font-size:11px">Nenhum evento</div>';
+  return filtrados.map(e => `
+    <div class="log-row">
+      <span class="log-ts">${new Date(e.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span>
+      <span class="log-type ${e.tipo}">${e.tipo.toUpperCase()}</span>
+      <span class="log-msg">${e.msg}</span>
+    </div>
+  `).join('');
+}
+
+function filtrarLog() {
+  const filtro = document.getElementById('logpc-filtro').value;
+  document.getElementById('logEventos').innerHTML = renderEventos(window._logEventos || [], filtro);
+}
+
+function desenharChart(dados) {
+  const canvas = document.getElementById('logChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  if (!W || !H) return;
+
+  const vals = dados.map(d => d.count);
+  const max  = Math.max(...vals, 1);
+  const pad  = { t:10, r:10, b:24, l:28 };
+  const iw   = W - pad.l - pad.r;
+  const ih   = H - pad.t - pad.b;
+  const bw   = iw / vals.length;
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,.05)';
+  ctx.lineWidth = 1;
+  [0,.25,.5,.75,1].forEach(p => {
+    const y = pad.t + ih * (1-p);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.2)';
+    ctx.font = '8px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(max*p), pad.l - 3, y + 3);
+  });
+
+  // barras
+  vals.forEach((v, i) => {
+    const bh = (v / max) * ih;
+    const x  = pad.l + i * bw;
+    const y  = pad.t + ih - bh;
+    const grd = ctx.createLinearGradient(0, y, 0, y + bh);
+    grd.addColorStop(0, '#00e87a');
+    grd.addColorStop(1, 'rgba(0,232,122,.2)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(x + 1, y, bw - 2, bh);
+  });
+
+  // x labels (cada 6h)
+  ctx.fillStyle = 'rgba(255,255,255,.25)';
+  ctx.font = '8px JetBrains Mono';
+  ctx.textAlign = 'center';
+  vals.forEach((_, i) => {
+    if (i % Math.ceil(vals.length / 6) === 0) {
+      ctx.fillText(`-${vals.length - i}h`, pad.l + i * bw + bw/2, H - 6);
+    }
+  });
+}
+
+function exportarLog(id) {
+  if (!window._logEventos) return;
+  const txt = window._logEventos.map(e =>
+    `[${new Date(e.ts).toISOString()}] [${e.tipo.toUpperCase()}] ${e.msg.replace(/<[^>]+>/g,'')}`
+  ).join('\n');
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `log_${id}_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+}
+
+function novaArena() {
+  const id   = prompt('ID da arena (ex: arena_curitiba):');
+  if (!id) return;
+  const nome = prompt('Nome da arena:');
+  if (!nome) return;
+  const cidade = prompt('Cidade:') || '—';
+  arenas.push({ id, nome, cidade, status:'offline', video_atual:'', videos:[] });
+  renderSidebar();
+  toast('Arena criada');
+}
+
+function toast(msg, tipo='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${tipo} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

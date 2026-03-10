@@ -1,0 +1,17 @@
+{
+  "linha_contagem": {
+    "ax": 0.495260663507109,
+    "ay": 0.7605263157894737,
+    "bx": 0.9549763033175356,
+    "by": 0.7394736842105263,
+    "tolerancia": 8,
+    "direcao": "baixo"
+  },
+  "faixas": [],
+  "overlay": {
+    "espessura": 2,
+    "labels": true,
+    "tolerancia": true,
+    "diamond": true
+  }
+}

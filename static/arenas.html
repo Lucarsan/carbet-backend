@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CarBet</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0e1117;--bg2:#13161f;--bg3:#1a1e2a;--sidebar:#111318;
+  --border:#1e2130;--accent:#00e676;--accent2:#00bcd4;
+  --live:#ef5350;--warn:#ffb300;--text:#e8eaf0;--text2:#7b8096;--text3:#4a4f66;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden}
+.app{display:flex;height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:200px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:18px 16px;border-bottom:1px solid var(--border)}
+.logo-icon{display:flex;align-items:center}
+.logo-text{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;letter-spacing:2px}
+.nav{flex:1;padding:10px 0}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 16px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;position:relative;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav-item.active{color:var(--accent);background:rgba(0,230,118,.06)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--accent);color:#000;font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px}
+.sidebar-bottom{padding:14px;border-top:1px solid var(--border)}
+.settings-item{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;cursor:pointer;padding:7px;border-radius:6px;transition:all .15s}
+.settings-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.settings-item svg{width:15px;height:15px}
+
+/* TOPBAR */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--accent)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:lpulse 2s infinite}
+@keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(0,230,118,.4)}70%{box-shadow:0 0 0 7px rgba(0,230,118,0)}100%{box-shadow:0 0 0 0 rgba(0,230,118,0)}}
+.tb-div{width:1px;height:18px;background:var(--border)}
+.tb-saldo{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 11px;margin-left:auto}
+.tb-saldo-val{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;color:var(--accent);letter-spacing:1px}
+.tb-notif{width:34px;height:34px;border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);position:relative;transition:all .15s;flex-shrink:0}
+.tb-notif:hover{background:var(--bg3)}
+.notif-dot{position:absolute;top:5px;right:5px;width:5px;height:5px;background:var(--live);border-radius:50%}
+.tb-avatar{width:34px;height:34px;border-radius:7px;background:linear-gradient(135deg,#1e3a2a,#0a2a1a);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;font-family:'Rajdhani',sans-serif;flex-shrink:0}
+.lang-btn{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:11px;color:var(--text2);transition:all .15s;position:relative;flex-shrink:0}
+.lang-btn:hover{border-color:var(--accent);color:var(--text)}
+.lang-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:160px;z-index:200;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.lang-dropdown.open{display:block}
+.lang-opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .15s}
+.lang-opt:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.lang-opt.active{color:var(--accent)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:20px}
+.content::-webkit-scrollbar{width:3px}
+.content::-webkit-scrollbar-thumb{background:var(--border)}
+.page{display:none}
+.page.active{display:block}
+.page-hd{margin-bottom:16px}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;letter-spacing:1px}
+.page-sub{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* FILTROS */
+.filters{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.fbtn{padding:5px 13px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.fbtn:hover{border-color:var(--accent);color:var(--accent)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+
+/* ARENAS GRID */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;opacity:0;animation:cardIn .4s ease forwards}
+.card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.1s}
+.card:nth-child(3){animation-delay:.15s}.card:nth-child(4){animation-delay:.2s}
+.card:nth-child(5){animation-delay:.25s}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card:hover{border-color:rgba(0,230,118,.25);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.card.real{border-color:rgba(0,230,118,.15)}
+.card.real:hover{border-color:var(--accent);box-shadow:0 8px 30px rgba(0,230,118,.08)}
+.card-img{position:relative;overflow:hidden}
+.card-img img{width:100%;height:140px;object-fit:cover;display:block;transition:transform .4s;background:var(--bg3);filter:brightness(.55) saturate(.8)}
+.card:hover .card-img img{transform:scale(1.05);filter:brightness(.7) saturate(.9)}
+.card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 35%,rgba(14,17,23,.95) 100%)}
+.card-badges{position:absolute;top:9px;left:9px;display:flex;gap:5px}
+.blive{background:var(--live);color:#fff;font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 7px;border-radius:3px;display:flex;align-items:center;gap:3px}
+.blive-dot{width:4px;height:4px;background:#fff;border-radius:50%;animation:lpulse 1.5s infinite}
+.card-info{position:absolute;bottom:10px;left:12px;right:12px}
+.card-name{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.card-loc{font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1px;margin-top:2px}
+.card-stats{padding:10px 13px;display:flex;border-top:1px solid var(--border)}
+.cstat{flex:1;padding:0 3px}
+.cstat+.cstat{border-left:1px solid var(--border);padding-left:10px}
+.cstat-l{font-size:8px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:3px}
+.cstat-v{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700}
+.cstat-v.g{color:var(--accent)}
+.cstat-v.d{color:var(--text2)}
+
+/* ── ARENA INTERNA ── */
+.arena-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.back-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:all .15s;background:var(--bg2);flex-shrink:0}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.arena-hd-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700}
+.arena-hd-sub{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-top:2px}
+.arena-hd-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:lpulse 2s infinite}
+
+/* ARENA BODY — vídeo menor + painel lateral */
+.arena-body{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start}
+.arena-left{display:flex;flex-direction:column;gap:10px}
+
+/* VIDEO — altura reduzida para caber tudo sem scroll */
+.video-wrap{position:relative;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--border)} #arena-linha-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.video-el{width:100%;max-height:260px;object-fit:cover;display:block}
+.video-top{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+.vcam{background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:3px 9px;font-size:9px;font-weight:600;letter-spacing:1px;color:#fff;backdrop-filter:blur(4px);display:flex;align-items:center;gap:5px}
+.vlive{background:var(--live);color:#fff;font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 7px;border-radius:4px;display:flex;align-items:center;gap:3px}
+.vplayers{background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:3px 9px;font-size:9px;color:#fff;backdrop-filter:blur(4px);display:flex;align-items:center;gap:4px}
+.vp-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:lpulse 2s infinite}
+
+/* LINHA DO TEMPO */
+.timeline-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px}
+.timeline-title{font-size:8px;letter-spacing:2px;color:var(--text3);margin-bottom:10px}
+.timeline{display:flex;align-items:flex-start;position:relative}
+.timeline-track{position:absolute;top:13px;left:14px;right:14px;height:2px;background:rgba(255,255,255,.06);border-radius:1px;z-index:0}
+.timeline-progress{position:absolute;top:13px;left:14px;height:2px;background:linear-gradient(to right,var(--accent),var(--accent2));border-radius:1px;z-index:1;transition:width .6s ease}
+.tl-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;z-index:2}
+.tl-dot{width:12px;height:12px;border-radius:50%;background:var(--bg3);border:2px solid var(--text3);transition:all .4s;margin:7px auto 0}
+.tl-dot.done{background:var(--accent);border-color:var(--accent)}
+.tl-dot.active{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,230,118,.2);animation:tlPulse 1.5s infinite}
+@keyframes tlPulse{0%,100%{box-shadow:0 0 0 4px rgba(0,230,118,.2)}50%{box-shadow:0 0 0 8px rgba(0,230,118,.05)}}
+.tl-label{font-size:8px;letter-spacing:.5px;color:var(--text3);text-align:center;transition:color .3s}
+.tl-label.done{color:var(--text2)}
+.tl-label.active{color:var(--accent);font-weight:700}
+.tl-dur{font-size:8px;color:var(--text3);text-align:center}
+.tl-dur.active{color:rgba(0,230,118,.7)}
+
+/* TIMER + ACTIVITY */
+.timer-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px}
+.timer-lbl{font-size:9px;color:var(--text2);letter-spacing:1.5px}
+.timer-num{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent)}
+.timer-fase{font-size:10px;color:var(--text2);letter-spacing:1px}
+.activity-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.activity-hd{padding:9px 14px;border-bottom:1px solid var(--border);font-size:8px;letter-spacing:2px;color:var(--text3)}
+.activity-list{padding:7px;display:flex;flex-direction:column;gap:3px;max-height:140px;overflow:hidden}
+.act-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg3);border-radius:5px;animation:actIn .3s ease}
+@keyframes actIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+.act-nick{font-size:11px;font-weight:600;color:var(--text)}
+.act-sub{font-size:9px;color:var(--text2)}
+.act-sub span{color:var(--accent)}
+.act-val{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;color:var(--accent)}
+
+/* BET PANEL */
+.bet-panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.bet-panel-hd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.bet-panel-hd svg{width:13px;height:13px;color:var(--accent)}
+.bet-panel-title{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--text2)}
+.faixas-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px}
+.faixa-btn{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 10px;cursor:pointer;transition:all .2s;text-align:left;position:relative;overflow:hidden}
+.faixa-btn:hover:not(:disabled){border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.04)}
+.faixa-btn.selected{border-color:var(--accent);background:rgba(0,230,118,.07)}
+.faixa-btn.selected::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent)}
+.faixa-btn:disabled{opacity:.35;cursor:not-allowed}
+.faixa-name{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.faixa-odd{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:3px}
+.fbar-wrap{height:2px;background:rgba(255,255,255,.06);border-radius:2px;margin-bottom:3px}
+.fbar{height:2px;background:var(--accent);border-radius:2px;transition:width .5s}
+.fmeta{display:flex;justify-content:space-between;font-size:8px;color:var(--text3)}
+.wager-sec{padding:0 10px 10px}
+.wager-lbl{font-size:8px;letter-spacing:2px;color:var(--text3);margin-bottom:6px}
+.wager-btns{display:flex;gap:3px;margin-bottom:6px}
+.wbtn{flex:1;padding:5px 2px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:9px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Rajdhani',sans-serif}
+.wbtn:hover{border-color:rgba(0,230,118,.3);color:var(--accent)}
+.wbtn.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.winput-wrap{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px}
+.wsymbol{font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--text2)}
+.winput{flex:1;background:transparent;border:none;outline:none;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--text);width:100%}
+.retorno-row{padding:8px 10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.retorno-lbl{font-size:9px;letter-spacing:1px;color:var(--text2)}
+.retorno-val{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--accent)}
+.bet-btn{margin:0 10px 10px;width:calc(100% - 20px);padding:11px;background:linear-gradient(135deg,#003322,#005533);border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:3px;border-radius:7px;cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif}
+.bet-btn:hover:not(:disabled){background:linear-gradient(135deg,#005533,#007744);box-shadow:0 0 20px rgba(0,230,118,.15)}
+.bet-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ══ RANKING ══ */
+.rank-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.rank-period-btns{display:flex;gap:5px}
+.rpbtn{padding:5px 13px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.rpbtn:hover{border-color:var(--accent);color:var(--accent)}
+.rpbtn.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+.rank-temporada{font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.temporada-badge{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.2);color:var(--accent);font-size:9px;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:1px}
+
+/* PATENTES */
+.patentes-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+.patente-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;transition:all .2s;cursor:default}
+.patente-card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-1px)}
+.patente-card.minha{border-color:var(--accent);background:rgba(0,230,118,.05)}
+.pat-icon{font-size:22px;margin-bottom:4px}
+.pat-nome{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;margin-bottom:2px}
+.pat-pts{font-size:8px;color:var(--text3);letter-spacing:.5px}
+.pat-minha{font-size:8px;color:var(--accent);margin-top:2px;display:none}
+.patente-card.minha .pat-minha{display:block}
+
+/* TABELA RANKING */
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.table-hd{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.table-hd-left{display:flex;align-items:center;gap:10px}
+.table-hd-icon{font-size:16px}
+.table-hd-title{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700}
+.table-hd-sub{font-size:10px;color:var(--text2)}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 16px;text-align:left;font-size:8px;letter-spacing:2px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:600}
+td{padding:11px 16px;font-size:13px;border-bottom:1px solid rgba(30,33,48,.5);transition:background .15s}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+tr.eu td{background:rgba(0,230,118,.05)!important}
+tr.eu td:first-child{border-left:3px solid var(--accent)}
+.rank-medal{font-size:17px}
+.rank-num{font-family:'Rajdhani',sans-serif;font-size:12px;color:var(--text3);font-weight:600}
+.user-cell{display:flex;align-items:center;gap:10px}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);font-family:'Rajdhani',sans-serif;flex-shrink:0}
+.user-avatar.eu{border-color:var(--accent);background:rgba(0,230,118,.1)}
+.user-name{font-weight:600}
+.user-name.eu{color:var(--accent)}
+.user-eu-tag{font-size:8px;color:var(--accent);background:rgba(0,230,118,.1);padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle}
+.pat-tag{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 6px;border-radius:3px;background:var(--bg3);border:1px solid var(--border)}
+.win-val{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--accent)}
+.win-rate{color:var(--text2)}
+.bets-val{color:var(--text2)}
+.rank-minha-pos{background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.15);border-radius:7px;padding:10px 14px;margin-top:10px;display:flex;align-items:center;justify-content:space-between;font-size:12px}
+.rank-minha-pos-val{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent)}
+
+/* ══ DASHBOARD ══ */
+.stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden}
+.stat-card-label{font-size:8px;letter-spacing:2px;color:var(--text3);margin-bottom:7px}
+.stat-card-val{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.stat-card-sub{font-size:10px;margin-top:5px}
+.stat-card-sub.up{color:var(--accent)}
+.stat-card-sub.down{color:var(--live)}
+.stat-card-icon{position:absolute;right:14px;top:14px;font-size:26px;opacity:.12}
+.stat-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:10px;overflow:hidden}
+.stat-bar-fill{height:100%;background:linear-gradient(to right,var(--accent),var(--accent2));border-radius:2px;transition:width .8s}
+.charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-top:12px}
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.chart-title{font-size:12px;font-weight:600;margin-bottom:14px;color:var(--text)}
+
+/* ══ HISTÓRICO ══ */
+.hist-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid rgba(30,33,48,.5);transition:background .15s}
+.hist-item:hover{background:rgba(255,255,255,.02)}
+.hist-item:last-child{border-bottom:none}
+.hist-arena-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hist-info{flex:1}
+.hist-arena{font-size:12px;font-weight:600}
+.hist-meta{font-size:9px;color:var(--text2);margin-top:2px}
+.hist-resultado{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700}
+.hist-resultado.ganhou{color:var(--accent)}
+.hist-resultado.perdeu{color:var(--live)}
+.hist-resultado.pendente{color:var(--warn)}
+
+/* ══ WALLET ══ */
+.wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.wallet-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px}
+.wallet-card-title{font-size:8px;letter-spacing:2px;color:var(--text3);margin-bottom:10px}
+.wallet-card-val{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;color:var(--accent)}
+.wallet-card-sub{font-size:10px;color:var(--text2);margin-top:3px}
+.wallet-actions{display:flex;gap:7px;margin-top:12px}
+.waction-btn{flex:1;padding:9px;border-radius:6px;font-size:10px;font-weight:600;letter-spacing:1.5px;cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif}
+.waction-btn.dep{background:linear-gradient(135deg,#003322,#005533);border:1px solid var(--accent);color:var(--accent)}
+.waction-btn.dep:hover{box-shadow:0 0 15px rgba(0,230,118,.2)}
+.waction-btn.saq{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.waction-btn.saq:hover{border-color:var(--text2);color:var(--text)}
+.wallet-input-group{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.wallet-input-label{font-size:8px;letter-spacing:2px;color:var(--text3)}
+.wallet-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;outline:none;width:100%}
+.wallet-input:focus{border-color:var(--accent)}
+.wallet-submit{width:100%;margin-top:7px;padding:10px;background:linear-gradient(135deg,#003322,#005533);border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:3px;border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;transition:all .2s}
+.wallet-submit:hover{box-shadow:0 0 15px rgba(0,230,118,.15)}
+.trans-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(30,33,48,.5)}
+.trans-item:last-child{border-bottom:none}
+.trans-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.trans-icon.dep{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.2)}
+.trans-icon.saq{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.2)}
+.trans-icon.win{background:rgba(0,188,212,.1);border:1px solid rgba(0,188,212,.2)}
+.trans-info{flex:1;margin-left:9px}
+.trans-desc{font-size:12px;font-weight:500}
+.trans-date{font-size:9px;color:var(--text2);margin-top:1px}
+.trans-val{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700}
+.trans-val.pos{color:var(--accent)}
+.trans-val.neg{color:var(--live)}
+
+/* CONTADOR NO VÍDEO */
+.video-counter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;z-index:10;transition:opacity .3s}
+.video-counter-num{font-family:'Rajdhani',sans-serif;font-size:80px;font-weight:700;line-height:1;text-shadow:0 0 40px currentColor,0 4px 20px rgba(0,0,0,.8);transition:color .4s,text-shadow .4s;animation:none}
+.video-counter-num.gain{color:#00e676;text-shadow:0 0 40px rgba(0,230,118,.8),0 4px 20px rgba(0,0,0,.8)}
+.video-counter-num.loss{color:#ef5350;text-shadow:0 0 40px rgba(239,83,80,.8),0 4px 20px rgba(0,0,0,.8)}
+.video-counter-num.neutral{color:rgba(255,255,255,.4)}
+.video-counter-label{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.5);margin-top:4px}
+.video-counter-range{font-size:11px;font-weight:600;letter-spacing:2px;margin-top:2px;transition:color .4s}
+.video-counter-range.gain{color:#00e676}
+.video-counter-range.loss{color:#ef5350}
+.video-counter-range.neutral{color:rgba(255,255,255,.3)}
+@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.video-counter-num.pop{animation:numPop .2s ease}
+
+/* MAPA */
+.map-container{width:100%;height:calc(100vh - 120px);border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--bg2)}
+.map-pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:10}
+.map-pin-dot{width:14px;height:14px;background:var(--live);border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 4px rgba(239,83,80,.3);animation:lpulse 2s infinite;margin:0 auto}
+.map-pin-dot.active{background:var(--accent);box-shadow:0 0 0 4px rgba(0,230,118,.3)}
+.map-pin-label{background:rgba(0,0,0,.8);color:#fff;font-size:9px;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-top:4px;text-align:center;border:1px solid rgba(255,255,255,.1)}
+.map-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px}
+.map-arena-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .15s}
+.map-arena-item:hover{background:rgba(255,255,255,.04)}
+.map-arena-item.real{border-left:3px solid var(--accent)}
+.map-arena-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.map-arena-name{font-size:12px;font-weight:600}
+.map-arena-loc{font-size:10px;color:var(--text2)}
+
+/* GRÁFICO COM FILTROS */
+.chart-filter-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.chart-period-btns{display:flex;gap:4px}
+.cpbtn{padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text2);font-size:10px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.cpbtn:hover{border-color:var(--accent);color:var(--accent)}
+.cpbtn.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+
+/* ── TELA DE LOGIN ── */
+#tela-login-arenas{position:fixed;inset:0;background:#0a0d12;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:'DM Sans',sans-serif}
+.login-wrap{width:360px;padding:0 24px}
+.login-logo-cb{font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;letter-spacing:8px;color:var(--accent);text-shadow:0 0 30px rgba(0,230,118,.4);line-height:1;margin-bottom:4px}
+.login-tag-cb{font-size:9px;letter-spacing:4px;color:var(--text3);margin-bottom:36px}
+.login-tabs-cb{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.ltab-cb{flex:1;padding:9px;background:none;border:none;color:var(--text3);font-size:11px;letter-spacing:2px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ltab-cb.on{color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-1px}
+.login-campo-cb{width:100%;background:rgba(0,15,8,.8);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:6px;font-size:13px;margin-bottom:9px;outline:none;font-family:'DM Sans',sans-serif;box-sizing:border-box;transition:border .2s}
+.login-campo-cb:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,230,118,.07)}
+.login-campo-cb::placeholder{color:var(--text3)}
+.login-erro-cb{color:#ff5252;font-size:10px;letter-spacing:1px;min-height:16px;margin-bottom:6px}
+.login-btn-cb{width:100%;padding:12px;background:linear-gradient(135deg,#003322,#005533);border:1px solid var(--accent);color:var(--accent);font-size:11px;letter-spacing:4px;font-weight:700;border-radius:6px;cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;margin-bottom:8px}
+.login-btn-cb:hover{background:linear-gradient(135deg,#005533,#007744);box-shadow:0 0 20px rgba(0,230,118,.15)}
+.login-btn-cb:disabled{opacity:.4;cursor:not-allowed}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 18px;font-size:12px;color:var(--text);opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
+
+/* ── TUTORIAL ── */
+.tut-wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px}
+.tut-hero{text-align:center;padding:40px 0 32px}
+.tut-logo{font-size:13px;letter-spacing:3px;color:var(--accent);font-weight:700;margin-bottom:16px}
+.tut-title{font-size:36px;font-weight:800;line-height:1.15;margin-bottom:12px}
+.tut-title span{color:var(--accent)}
+.tut-sub{font-size:15px;color:var(--text2);line-height:1.6;max-width:480px;margin:0 auto}
+.tut-steps{display:flex;flex-direction:column;gap:0;margin:32px 0}
+.tut-step{display:grid;grid-template-columns:52px 1fr;gap:0;position:relative}
+.tut-step:not(:last-child) .tut-step-line{position:absolute;left:25px;top:52px;bottom:0;width:2px;background:linear-gradient(to bottom,var(--accent2),transparent)}
+.tut-step-num{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex-shrink:0;position:relative;z-index:1;margin-top:0}
+.tut-step-num.s1{background:#001a0e;border:2px solid var(--accent);color:var(--accent)}
+.tut-step-num.s2{background:#001133;border:2px solid #3d8bff;color:#3d8bff}
+.tut-step-num.s3{background:#1a1000;border:2px solid #f5a623;color:#f5a623}
+.tut-step-num.s4{background:#1a0010;border:2px solid #ff6b9d;color:#ff6b9d}
+.tut-step-num.s5{background:#001a0e;border:2px solid var(--accent);color:var(--accent)}
+.tut-step-body{padding:8px 0 40px 20px}
+.tut-step-tag{font-size:9px;letter-spacing:2px;font-weight:700;margin-bottom:6px}
+.tut-step-tag.s1{color:var(--accent)}
+.tut-step-tag.s2{color:#3d8bff}
+.tut-step-tag.s3{color:#f5a623}
+.tut-step-tag.s4{color:#ff6b9d}
+.tut-step-tag.s5{color:var(--accent)}
+.tut-step-title{font-size:18px;font-weight:800;margin-bottom:8px}
+.tut-step-desc{font-size:13px;color:var(--text2);line-height:1.7}
+.tut-step-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:12px}
+.tut-faixas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.tut-faixa{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center}
+.tut-faixa-num{font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif}
+.tut-faixa-odd{font-size:11px;color:var(--text3);margin-top:2px}
+.tut-faixa.hot{border-color:var(--accent2);background:#001a0e}
+.tut-faixa.hot .tut-faixa-num{color:var(--accent)}
+.tut-timeline-mini{display:flex;align-items:center;gap:0;margin-top:14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tut-tl-step{flex:1;padding:10px 8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;border-right:1px solid var(--border)}
+.tut-tl-step:last-child{border-right:none}
+.tut-tl-step.hl{background:#001a0e;color:var(--accent)}
+.tut-tl-step .tut-tl-dur{font-size:9px;color:var(--text3);font-weight:400;margin-top:2px}
+.tut-cta{text-align:center;padding:32px 0 8px}
+.tut-cta-btn{background:var(--accent);color:#000;border:none;padding:16px 40px;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;font-family:var(--sans);transition:.2s;letter-spacing:.5px}
+.tut-cta-btn:hover{background:#00ff88;transform:translateY(-2px)}
+.tut-cta-sub{font-size:12px;color:var(--text3);margin-top:10px}
+.tut-divider{border:none;border-top:1px solid var(--border);margin:0 0 32px}
+.tut-faq{margin-top:40px}
+.tut-faq-title{font-size:11px;letter-spacing:2px;color:var(--text3);font-weight:700;margin-bottom:16px}
+.tut-faq-item{border-bottom:1px solid var(--border);padding:14px 0}
+.tut-faq-q{font-size:14px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tut-faq-q:hover{color:var(--accent)}
+.tut-faq-a{font-size:13px;color:var(--text2);line-height:1.7;padding-top:10px;display:none}
+.tut-faq-item.open .tut-faq-a{display:block}
+.tut-faq-item.open .tut-faq-arrow{transform:rotate(180deg)}
+.tut-faq-arrow{transition:.2s;flex-shrink:0;color:var(--text3)}
+.tut-badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tut-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+
+@keyframes modalIn{from{opacity:0;transform:scale(.88) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes shimmerGanhou{0%,100%{box-shadow:0 0 0 0 rgba(0,230,118,0)}50%{box-shadow:0 0 40px 8px rgba(0,230,118,.25)}}
+@keyframes shimmerPerdeu{0%,100%{box-shadow:0 0 0 0 rgba(239,83,80,0)}50%{box-shadow:0 0 40px 8px rgba(239,83,80,.2)}}
+#resultado-modal.ganhou{border-color:var(--accent);animation:modalIn .35s cubic-bezier(.34,1.56,.64,1),shimmerGanhou 2s ease 0.4s infinite}
+#resultado-modal.perdeu{border-color:#ef5350;animation:modalIn .35s cubic-bezier(.34,1.56,.64,1),shimmerPerdeu 2s ease 0.4s infinite}
+
+/* ── CONTADOR AO VIVO ── */
+@keyframes numPop    {0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+@keyframes numShake  {0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes numGlow   {0%,100%{text-shadow:0 0 40px rgba(0,230,118,.6),0 4px 20px rgba(0,0,0,.8)}50%{text-shadow:0 0 80px rgba(0,230,118,1),0 0 120px rgba(0,230,118,.4),0 4px 20px rgba(0,0,0,.8)}}
+@keyframes numFreeze {0%{transform:scale(1)}30%{transform:scale(1.35)}60%{transform:scale(0.95)}100%{transform:scale(1.1)}}
+@keyframes pulseRing {0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+@keyframes slideUp   {from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeFlash {0%,100%{opacity:1}50%{opacity:0}}
+@keyframes bgPulseGain{0%,100%{background:rgba(0,230,118,0)}50%{background:rgba(0,230,118,.07)}}
+@keyframes bgPulseLoss{0%,100%{background:rgba(239,83,80,0)}50%{background:rgba(239,83,80,.07)}}
+
+/* FREEZE overlay no vídeo */
+.video-freeze-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);z-index:12;opacity:0;pointer-events:none;transition:opacity .4s}
+.video-freeze-overlay.show{opacity:1}
+.video-freeze-txt{font-size:13px;letter-spacing:4px;font-weight:900;color:#fff;
+  animation:fadeFlash 1s ease infinite}
+
+/* Anel pulsante em volta do número */
+.counter-ring{position:absolute;width:120px;height:120px;border-radius:50%;
+  border:2px solid var(--accent);top:50%;left:50%;transform:translate(-50%,-50%);
+  opacity:0;pointer-events:none;z-index:9}
+.counter-ring.pulse{animation:pulseRing .6s ease-out forwards}
+
+/* Estado do vídeo-wrap durante evento */
+.video-wrap.live-gain{animation:bgPulseGain 1s ease infinite}
+.video-wrap.live-loss{animation:bgPulseLoss 1s ease infinite}
+
+/* ── MODAL RESULTADO — estados visuais ── */
+@keyframes confettiDrop{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(300px) rotate(720deg);opacity:0}}
+@keyframes resultSlideIn{0%{opacity:0;transform:scale(.75) translateY(30px)}60%{transform:scale(1.04) translateY(-4px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes coinSpin{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
+@keyframes saldoCount{from{color:#fff}to{color:var(--accent)}}
+
+#resultado-modal{animation:resultSlideIn .5s cubic-bezier(.34,1.36,.64,1) forwards}
+#resultado-modal.ganhou{border-color:var(--accent);box-shadow:0 0 60px rgba(0,230,118,.2)}
+#resultado-modal.perdeu{border-color:#ef5350;box-shadow:0 0 60px rgba(239,83,80,.15)}
+
+.res-confetti-wrap{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:16px}
+.confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;
+  animation:confettiDrop 1.2s ease-out forwards}
+
+.res-big-num{font-size:72px;font-weight:900;font-family:'Rajdhani',sans-serif;
+  line-height:1;transition:color .4s;text-shadow:0 0 40px currentColor}
+.res-big-num.ganhou{color:var(--accent);animation:numGlow 1.5s ease infinite}
+.res-big-num.perdeu{color:#ef5350}
+
+/* Timeline pulsante durante evento */
+.tl-dot.active.evento-live{animation:tlPulse .8s ease infinite}
+@keyframes tlPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,230,118,.6)}50%{box-shadow:0 0 0 6px rgba(0,230,118,0)}}
+
+/* ── WALLET PAGAMENTOS ── */
+.w-tabs{display:flex;gap:6px;margin-bottom:20px}
+.w-tab{flex:1;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  font-size:12px;font-weight:700;text-align:center;cursor:pointer;transition:.15s;font-family:var(--sans)}
+.w-tab:hover{border-color:var(--accent2)}
+.w-tab.on{background:#001a0e;border-color:var(--accent);color:var(--accent)}
+.w-metodos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.w-metodo{padding:12px 8px;background:var(--bg3);border:2px solid var(--border);border-radius:10px;
+  text-align:center;cursor:pointer;transition:.15s}
+.w-metodo:hover{border-color:var(--accent2)}
+.w-metodo.on{background:#001a0e;border-color:var(--accent)}
+.w-metodo-icon{font-size:22px;margin-bottom:4px}
+.w-metodo-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text2)}
+.w-metodo-taxa{font-size:9px;color:var(--text3);margin-top:2px}
+.w-metodo.on .w-metodo-label{color:var(--accent)}
+.w-valores{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.w-val-btn{padding:7px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);color:var(--text2);transition:.15s}
+.w-val-btn:hover,.w-val-btn.on{background:#001a0e;border-color:var(--accent);color:var(--accent)}
+.w-resumo{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;font-size:12px}
+.w-resumo-row{display:flex;justify-content:space-between;margin-bottom:6px;color:var(--text2)}
+.w-resumo-row.total{color:var(--text1);font-weight:800;font-size:14px;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+.w-resumo-row .green{color:var(--accent)}
+.w-resumo-row .gold{color:#f5a623}
+.w-confirm-btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:900;
+  cursor:pointer;font-family:var(--sans);letter-spacing:.5px;background:var(--accent);color:#000;transition:.2s}
+.w-confirm-btn:disabled{opacity:.4;cursor:not-allowed}
+/* PIX modal */
+.pix-modal{background:var(--bg2);border:1px solid var(--accent2);border-radius:14px;padding:24px;text-align:center;margin-top:16px}
+.pix-qr{width:180px;height:180px;margin:0 auto 14px;background:#fff;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center}
+.pix-qr img{width:100%;height:100%;object-fit:contain}
+.pix-copia{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;
+  font-size:10px;font-family:var(--mono);word-break:break-all;text-align:left;margin-bottom:12px;color:var(--text2)}
+.boleto-link{display:block;padding:12px;background:#001a0e;border:1px solid var(--accent);border-radius:8px;
+  color:var(--accent);text-decoration:none;font-weight:700;font-size:13px;margin-bottom:8px}
+.w-status-badge{display:inline-block;padding:4px 12px;border-radius:10px;font-size:10px;font-weight:800}
+.w-status-badge.aprovado{background:#001a0e;color:var(--accent);border:1px solid var(--accent2)}
+.w-status-badge.pendente{background:#1a1000;color:#f5a623;border:1px solid #f5a623}
+.w-status-badge.cancelado{background:#1e0007;color:#ff4757;border:1px solid #ff4757}
+</style>
+</head>
+<body>
+<!-- TELA DE LOGIN -->
+<div id="tela-login-arenas">
+  <div class="login-wrap">
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 340 80'%3E%3Ctext x='10' y='66' font-family='Arial Black,Arial' font-weight='900' font-size='72' letter-spacing='-3' fill='white'%3ECAR%3C/text%3E%3Ctext x='182' y='66' font-family='Arial Black,Arial' font-weight='900' font-size='72' letter-spacing='-3' fill='%2376c442'%3EBET%3C/text%3E%3C/svg%3E" style="height:64px;width:auto;margin-bottom:4px" alt="CarBet">
+    <div class="login-tag-cb">BET ON TRAFFIC · REAL TIME</div>
+    <div class="login-tabs-cb">
+      <button class="ltab-cb on" id="ltab-entrar" onclick="trocarTabLogin('entrar')">ENTRAR</button>
+      <button class="ltab-cb" id="ltab-cadastro" onclick="trocarTabLogin('cadastro')">CADASTRAR</button>
+    </div>
+    <!-- ENTRAR -->
+    <div id="painel-login-entrar">
+      <input class="login-campo-cb" id="inp-user" type="text" placeholder="USUÁRIO" autocomplete="username"/>
+      <input class="login-campo-cb" id="inp-pass" type="password" placeholder="SENHA" autocomplete="current-password"/>
+      <div class="login-erro-cb" id="login-erro-cb"></div>
+      <button class="login-btn-cb" id="btn-entrar" onclick="fazerLoginArenas()">▶ ENTRAR</button>
+    </div>
+    <!-- CADASTRAR -->
+    <div id="painel-login-cadastro" style="display:none">
+      <input class="login-campo-cb" id="inp-novo-user" type="text" placeholder="USUÁRIO" autocomplete="username"/>
+      <input class="login-campo-cb" id="inp-novo-pass" type="password" placeholder="SENHA"/>
+      <input class="login-campo-cb" id="inp-novo-pass2" type="password" placeholder="CONFIRMAR SENHA"/>
+      <div class="login-erro-cb" id="login-erro-cb2"></div>
+      <button class="login-btn-cb" id="btn-cadastrar" onclick="fazerCadastroArenas()">✦ CRIAR CONTA</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 60'%3E%3Ctext x='10' y='46' font-family='Arial Black,Arial' font-weight='900' font-size='48' letter-spacing='-2' fill='white'%3ECAR%3C/text%3E%3Ctext x='118' y='46' font-family='Arial Black,Arial' font-weight='900' font-size='48' letter-spacing='-2' fill='%2376c442'%3EBET%3C/text%3E%3C/svg%3E" style="height:28px;width:auto" alt="CarBet">
+    </div>
+    <nav class="nav">
+      <div class="nav-item" id="nav-arenas" onclick="navegar('arenas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span data-i18n="nav_arenas">Arenas</span><span class="nav-badge">4</span>
+      </div>
+      <div class="nav-item" id="nav-leaderboard" onclick="navegar('leaderboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+        <span data-i18n="nav_leaderboard">Ranking</span>
+      </div>
+      <div class="nav-item" id="nav-dashboard" onclick="navegar('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span data-i18n="nav_dashboard">Painel</span>
+      </div>
+      <div class="nav-item" id="nav-historico" onclick="navegar('historico')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span data-i18n="nav_historico">Histórico</span>
+      </div>
+      <div class="nav-item" id="nav-wallet" onclick="navegar('wallet')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 12h2"/></svg>
+        <span data-i18n="nav_wallet">Carteira</span>
+      </div>
+      <div class="nav-item" id="nav-tutorial" onclick="navegar('tutorial')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Como Jogar</span>
+      </div>
+      <div class="nav-item" id="nav-mapa" onclick="navegar('mapa')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>Mapa</span>
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="settings-item" onclick="toast(i18n('em_breve'))">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span data-i18n="nav_config">Configurações</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="live-badge"><div class="live-dot"></div><span data-i18n="live_market">MERCADO AO VIVO</span></div>
+      <div class="tb-div"></div>
+      <div style="font-size:10px;color:var(--text2);letter-spacing:1px" data-i18n="arenas_ativas">4 arenas ativas</div>
+      <div class="tb-saldo">
+        <span style="font-size:12px">💰</span>
+        <span class="tb-saldo-val" id="tb-saldo">10.000</span>
+        <span style="font-size:9px;color:var(--text3);margin-left:2px">coins</span>
+      </div>
+      <div class="tb-notif"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><div class="notif-dot"></div></div>
+      <div class="tb-avatar" id="tb-avatar">LU</div>
+      <div class="lang-btn" onclick="toggleLang(event)">
+        <span id="lang-flag">🇧🇷</span>
+        <span id="lang-code" style="font-size:10px;letter-spacing:1px">PT</span>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="lang-dropdown" id="lang-dropdown">
+          <div class="lang-opt active" onclick="setLang('pt')">🇧🇷 &nbsp;Português</div>
+          <div class="lang-opt" onclick="setLang('en')">🇺🇸 &nbsp;English</div>
+          <div class="lang-opt" onclick="setLang('es')">🇪🇸 &nbsp;Español</div>
+          <div class="lang-opt" onclick="setLang('fr')">🇫🇷 &nbsp;Français</div>
+          <div class="lang-opt" onclick="setLang('ja')">🇯🇵 &nbsp;日本語</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══ ARENAS ══ -->
+      <div id="page-arenas" class="page active">
+        <div id="lista-arenas">
+          <div class="page-hd">
+            <div class="page-title" data-i18n="arenas_titulo">Arenas ao Vivo</div>
+            <div class="page-sub" data-i18n="arenas_sub">Selecione uma arena para começar a apostar</div>
+          </div>
+          <div class="filters">
+            <button class="fbtn on" onclick="filtrar(this)" data-i18n="todas">Todas</button>
+            <button class="fbtn" onclick="filtrar(this)" data-i18n="ao_vivo">🔴 Ao Vivo</button>
+            <button class="fbtn" onclick="filtrar(this)" data-i18n="alto_vol">⚡ Alto Volume</button>
+          </div>
+          <div class="grid">
+            <!-- TOYOTA ARENA — REAL/LIVE -->
+            <div class="card real" onclick="abrirArena('demo_sp','teste_carros.mp4')">
+              <div class="card-img">
+                <img src="https://images.unsplash.com/photo-1582139329536-e7284fece509?w=600&q=70" alt="Toyota"/>
+                <div class="card-grad"></div>
+                <!-- BADGE SPONSOR TOP-LEFT -->
+                <div class="card-sponsor" style="position:absolute;top:9px;left:9px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:7px">
+                  <!-- TOYOTA SVG LOGO -->
+                  <svg width="36" height="22" viewBox="0 0 198 120" fill="white" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="99" cy="60" rx="90" ry="52" fill="none" stroke="white" stroke-width="8"/>
+                    <ellipse cx="99" cy="60" rx="47" ry="52" fill="none" stroke="white" stroke-width="8"/>
+                    <ellipse cx="99" cy="27" rx="62" ry="18" fill="none" stroke="white" stroke-width="8"/>
+                  </svg>
+                  <span style="font-size:9px;letter-spacing:2px;color:#fff;font-weight:700">TOYOTA</span>
+                </div>
+                <div class="card-badges" style="position:absolute;top:9px;right:9px"><div class="blive"><div class="blive-dot"></div>LIVE</div></div>
+                <div class="card-info"><div class="card-name">Toyota Arena</div><div class="card-loc">📍 SÃO PAULO, BR &nbsp;·&nbsp; 👥 <span id="pl-brasil">—</span></div></div>
+              </div>
+              <div class="card-stats">
+                <div class="cstat"><div class="cstat-l" data-i18n="volume">Volume</div><div class="cstat-v g" id="vol-brasil">—</div></div>
+                <div class="cstat"><div class="cstat-l">Rounds/min</div><div class="cstat-v g">2.0</div></div>
+                <div class="cstat"><div class="cstat-l" data-i18n="fase">Fase</div><div class="cstat-v g" id="fase-brasil">—</div></div>
+              </div>
+            </div>
+
+            <!-- BYD ARENA -->
+            <div class="card" onclick="toast(i18n('em_breve'))">
+              <div class="card-img">
+                <img src="https://images.unsplash.com/photo-1493515322954-4fa727e97985?w=600&q=70" alt="BYD"/>
+                <div class="card-grad"></div>
+                <div class="card-sponsor" style="position:absolute;top:9px;left:9px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:7px">
+                  <!-- BYD SVG LOGO -->
+                  <svg width="40" height="22" viewBox="0 0 200 80" fill="white" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="4" y="4" width="192" height="72" rx="10" fill="none" stroke="white" stroke-width="6"/>
+                    <text x="100" y="56" font-size="48" font-weight="900" text-anchor="middle" font-family="Arial Black" fill="white">BYD</text>
+                  </svg>
+                </div>
+                <div class="card-badges" style="position:absolute;top:9px;right:9px"><div style="background:rgba(0,0,0,.5);color:#888;font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 7px;border-radius:3px;border:1px solid #333">EM BREVE</div></div>
+                <div class="card-info"><div class="card-name">BYD Arena</div><div class="card-loc">📍 TOKYO, JAPAN &nbsp;·&nbsp; 👥 12.450</div></div>
+              </div>
+              <div class="card-stats">
+                <div class="cstat"><div class="cstat-l">Volume</div><div class="cstat-v">$1.2M</div></div>
+                <div class="cstat"><div class="cstat-l">Rounds/min</div><div class="cstat-v g">2.0</div></div>
+                <div class="cstat"><div class="cstat-l">Fase</div><div class="cstat-v d" data-i18n="em_breve_c">Em breve</div></div>
+              </div>
+            </div>
+
+            <!-- FORD ARENA -->
+            <div class="card" onclick="toast(i18n('em_breve'))">
+              <div class="card-img">
+                <img src="https://images.unsplash.com/photo-1470219556762-1771e7f9427d?w=600&q=70" alt="Ford"/>
+                <div class="card-grad"></div>
+                <div class="card-sponsor" style="position:absolute;top:9px;left:9px;background:rgba(0,20,80,.7);backdrop-filter:blur(8px);border:1px solid rgba(100,150,255,.3);border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:7px">
+                  <!-- FORD SVG LOGO (oval azul) -->
+                  <svg width="46" height="22" viewBox="0 0 230 100" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="115" cy="50" rx="108" ry="44" fill="#003399" stroke="white" stroke-width="5"/>
+                    <text x="115" y="67" font-size="52" font-weight="900" text-anchor="middle" font-family="Times New Roman" fill="white" font-style="italic">Ford</text>
+                  </svg>
+                </div>
+                <div class="card-badges" style="position:absolute;top:9px;right:9px"><div style="background:rgba(0,0,0,.5);color:#888;font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 7px;border-radius:3px;border:1px solid #333">EM BREVE</div></div>
+                <div class="card-info"><div class="card-name">Ford Arena</div><div class="card-loc">📍 MANHATTAN, NY &nbsp;·&nbsp; 👥 8.320</div></div>
+              </div>
+              <div class="card-stats">
+                <div class="cstat"><div class="cstat-l">Volume</div><div class="cstat-v">$850K</div></div>
+                <div class="cstat"><div class="cstat-l">Rounds/min</div><div class="cstat-v g">1.5</div></div>
+                <div class="cstat"><div class="cstat-l">Fase</div><div class="cstat-v d" data-i18n="em_breve_c">Em breve</div></div>
+              </div>
+            </div>
+
+            <!-- FIAT ARENA -->
+            <div class="card" onclick="toast(i18n('em_breve'))">
+              <div class="card-img">
+                <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&q=70" alt="Fiat"/>
+                <div class="card-grad"></div>
+                <div class="card-sponsor" style="position:absolute;top:9px;left:9px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:7px">
+                  <!-- FIAT SVG LOGO (escudo) -->
+                  <svg width="18" height="22" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M40 4 L76 20 L76 60 Q76 86 40 96 Q4 86 4 60 L4 20 Z" fill="none" stroke="white" stroke-width="5"/>
+                    <text x="40" y="62" font-size="30" font-weight="900" text-anchor="middle" font-family="Arial" fill="white">F</text>
+                  </svg>
+                  <span style="font-size:9px;letter-spacing:2px;color:#fff;font-weight:700">FIAT</span>
+                </div>
+                <div class="card-badges" style="position:absolute;top:9px;right:9px"><div style="background:rgba(0,0,0,.5);color:#888;font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 7px;border-radius:3px;border:1px solid #333">EM BREVE</div></div>
+                <div class="card-info"><div class="card-name">Fiat Arena</div><div class="card-loc">📍 BERLIM, GERMANY &nbsp;·&nbsp; 👥 5.100</div></div>
+              </div>
+              <div class="card-stats">
+                <div class="cstat"><div class="cstat-l">Volume</div><div class="cstat-v">$420K</div></div>
+                <div class="cstat"><div class="cstat-l">Rounds/min</div><div class="cstat-v g">3.0</div></div>
+                <div class="cstat"><div class="cstat-l">Fase</div><div class="cstat-v d" data-i18n="em_breve_c">Em breve</div></div>
+              </div>
+            </div>
+
+            <!-- CARD VAGA -->
+            <div class="card" style="cursor:default;border-style:dashed;opacity:.4" onclick="toast('Patrocine uma arena — contato@carbet.gg')">
+              <div class="card-img" style="background:var(--bg3);height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <span style="font-size:10px;letter-spacing:2px;color:var(--text3)">ARENA DISPONÍVEL</span>
+                <span style="font-size:8px;color:var(--text3)">Patrocine uma arena</span>
+              </div>
+              <div class="card-stats">
+                <div class="cstat"><div class="cstat-l">Status</div><div class="cstat-v d">—</div></div>
+                <div class="cstat"><div class="cstat-l">Volume</div><div class="cstat-v d">—</div></div>
+                <div class="cstat"><div class="cstat-l">Fase</div><div class="cstat-v d">—</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARENA INTERNA -->
+        <div id="arena-interna" style="display:none">
+          <div class="arena-header">
+            <div class="back-btn" onclick="voltarArenas()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <!-- TOYOTA LOGO MINI -->
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 10px;display:flex;align-items:center;gap:6px">
+                <svg width="28" height="18" viewBox="0 0 198 120" fill="white" xmlns="http://www.w3.org/2000/svg">
+                  <ellipse cx="99" cy="60" rx="90" ry="52" fill="none" stroke="white" stroke-width="8"/>
+                  <ellipse cx="99" cy="60" rx="47" ry="52" fill="none" stroke="white" stroke-width="8"/>
+                  <ellipse cx="99" cy="27" rx="62" ry="18" fill="none" stroke="white" stroke-width="8"/>
+                </svg>
+                <span style="font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.6);font-weight:700">TOYOTA</span>
+              </div>
+              <div>
+                <div class="arena-hd-name">Toyota Arena</div>
+                <div class="arena-hd-sub"><div class="arena-hd-dot"></div>Live · São Paulo, Brasil</div>
+              </div>
+            </div>
+          </div>
+          <div class="arena-body">
+            <div class="arena-left">
+              <!-- VIDEO MENOR -->
+              <div class="video-wrap" id="arena-video-wrap">
+                <video class="video-el" id="arena-video" autoplay loop muted playsinline>
+                  <source src="/static/teste_carros.mp4" type="video/mp4">
+                </video>
+                <!-- Canvas sobreposto para a linha de contagem -->
+                <canvas id="arena-linha-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5"></canvas>
+                <div class="video-top">
+                  <div style="display:flex;gap:5px;align-items:center">
+                    <div class="vlive"><div class="blive-dot"></div>LIVE</div>
+                    <div class="vcam">📷 CAM-01A</div>
+                  </div>
+                  <div class="vplayers"><div class="vp-dot"></div><span id="arena-players">—</span> <span data-i18n="jogadores">jogadores</span></div>
+                </div>
+                <!-- CONTADOR CENTRAL -->
+                <div class="video-counter" id="video-counter" style="opacity:0">
+                  <div class="counter-ring" id="counter-ring"></div>
+                  <div class="video-counter-num neutral" id="video-counter-num">0</div>
+                  <div class="video-counter-label" id="video-counter-label">CARROS</div>
+                  <div class="video-counter-range neutral" id="video-counter-range">—</div>
+                </div>
+                <!-- OVERLAY FREEZE -->
+                <div class="video-freeze-overlay" id="freeze-overlay">
+                  <div class="video-freeze-txt">⏸ APOSTAS ENCERRADAS</div>
+                </div>
+              </div>
+
+              <!-- LINHA DO TEMPO -->
+              <div class="timeline-wrap">
+                <div class="timeline-title" data-i18n="etapas_rodada">ETAPAS DA RODADA</div>
+                <div class="timeline" id="timeline">
+                  <div class="timeline-track"></div>
+                  <div class="timeline-progress" id="tl-progress" style="width:0%"></div>
+                  <div class="tl-step"><div class="tl-dot" id="tld-preview"></div><div class="tl-label" id="tll-preview" data-i18n="fase_analise">ANÁLISE</div><div class="tl-dur" id="tld-dur-preview">5s</div></div>
+                  <div class="tl-step"><div class="tl-dot" id="tld-apostas"></div><div class="tl-label" id="tll-apostas" data-i18n="fase_apostas">APOSTAS</div><div class="tl-dur" id="tld-dur-apostas">15s</div></div>
+                  <div class="tl-step"><div class="tl-dot" id="tld-freeze"></div><div class="tl-label" id="tll-freeze">FREEZE</div><div class="tl-dur" id="tld-dur-freeze">5s</div></div>
+                  <div class="tl-step"><div class="tl-dot" id="tld-evento"></div><div class="tl-label" id="tll-evento" data-i18n="fase_evento">AO VIVO</div><div class="tl-dur" id="tld-dur-evento">30s</div></div>
+                  <div class="tl-step"><div class="tl-dot" id="tld-resultado"></div><div class="tl-label" id="tll-resultado" data-i18n="fase_resultado">RESULTADO</div><div class="tl-dur" id="tld-dur-resultado">5s</div></div>
+                </div>
+              </div>
+
+              <!-- TIMER -->
+              <div class="timer-row">
+                <span class="timer-lbl" data-i18n="tempo_restante">TEMPO RESTANTE</span>
+                <span class="timer-num" id="arena-timer">—</span>
+                <span class="timer-fase" id="arena-fase-label">—</span>
+              </div>
+
+              <!-- ACTIVITY -->
+              <div class="activity-box">
+                <div class="activity-hd">⚡ <span data-i18n="atividade_ao_vivo">ATIVIDADE AO VIVO</span></div>
+                <div class="activity-list" id="activity-list"><div style="padding:10px;text-align:center;font-size:11px;color:var(--text3)" data-i18n="aguardando">Aguardando apostas...</div></div>
+              </div>
+            </div>
+
+            <!-- PAINEL APOSTAS -->
+            <div class="bet-panel">
+              <div class="bet-panel-hd">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span class="bet-panel-title" data-i18n="fazer_aposta">FAZER APOSTA</span>
+              </div>
+              <div class="faixas-grid">
+                <div class="faixa-btn" onclick="selecionarFaixa('0-4',this)"><div class="faixa-name">0 – 4</div><div class="faixa-odd" id="odd-0-4">—×</div><div class="fbar-wrap"><div class="fbar" id="bar-0-4" style="width:0%"></div></div><div class="fmeta"><span id="pct-0-4">0%</span><span id="pool-0-4">0</span></div></div>
+                <div class="faixa-btn" onclick="selecionarFaixa('5-9',this)"><div class="faixa-name">5 – 9</div><div class="faixa-odd" id="odd-5-9">—×</div><div class="fbar-wrap"><div class="fbar" id="bar-5-9" style="width:0%"></div></div><div class="fmeta"><span id="pct-5-9">0%</span><span id="pool-5-9">0</span></div></div>
+                <div class="faixa-btn" onclick="selecionarFaixa('10-14',this)"><div class="faixa-name">10 – 14</div><div class="faixa-odd" id="odd-10-14">—×</div><div class="fbar-wrap"><div class="fbar" id="bar-10-14" style="width:0%"></div></div><div class="fmeta"><span id="pct-10-14">0%</span><span id="pool-10-14">0</span></div></div>
+                <div class="faixa-btn" onclick="selecionarFaixa('15+',this)"><div class="faixa-name">15+</div><div class="faixa-odd" id="odd-15+">—×</div><div class="fbar-wrap"><div class="fbar" id="bar-15+" style="width:0%"></div></div><div class="fmeta"><span id="pct-15+">0%</span><span id="pool-15+">0</span></div></div>
+              </div>
+              <div class="wager-sec">
+                <div class="wager-lbl" data-i18n="valor_aposta">VALOR DA APOSTA</div>
+                <div class="wager-btns">
+                  <button class="wbtn" onclick="setValor(50,this)">50</button>
+                  <button class="wbtn" onclick="setValor(100,this)">100</button>
+                  <button class="wbtn on" onclick="setValor(200,this)">200</button>
+                  <button class="wbtn" onclick="setValor(500,this)">500</button>
+                  <button class="wbtn" onclick="setValor(1000,this)">1K</button>
+                </div>
+                <div class="winput-wrap"><span class="wsymbol">$</span><input class="winput" id="wager-inp" type="number" value="200" min="50" max="10000" step="50" oninput="calcRetorno()"/></div>
+              </div>
+              <div class="retorno-row">
+                <span class="retorno-lbl" data-i18n="retorno_potencial">Retorno Potencial</span>
+                <span class="retorno-val" id="retorno-val">—</span>
+              </div>
+              <button class="bet-btn" id="bet-btn" onclick="fazerAposta()" data-i18n="apostar">APOSTAR</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ RANKING ══ -->
+      <div id="page-leaderboard" class="page">
+        <div class="page-hd">
+          <div class="page-title" data-i18n="rank_titulo">🏆 Ranking Global</div>
+          <div class="page-sub" data-i18n="rank_sub">Compare seu desempenho com os melhores jogadores</div>
+        </div>
+
+        <!-- PATENTES -->
+        <div style="margin-bottom:6px;font-size:8px;letter-spacing:2px;color:var(--text3)" data-i18n="sistema_patentes">SISTEMA DE PATENTES</div>
+        <div class="patentes-row" id="patentes-row"></div>
+
+        <!-- FILTROS PERÍODO + TEMPORADA -->
+        <div class="rank-header-row">
+          <div class="rank-period-btns">
+            <button class="rpbtn" onclick="filtrarRank(this,'dia')" data-i18n="dia">Dia</button>
+            <button class="rpbtn on" onclick="filtrarRank(this,'semana')" data-i18n="semana">Semana</button>
+            <button class="rpbtn" onclick="filtrarRank(this,'mes')" data-i18n="mes">Mês</button>
+            <button class="rpbtn" onclick="filtrarRank(this,'ano')" data-i18n="ano">Ano</button>
+          </div>
+          <div class="rank-temporada">
+            <span data-i18n="temporada">Temporada</span>
+            <span class="temporada-badge">S1 · 2026</span>
+            <span style="color:var(--text3);font-size:9px" data-i18n="encerra">Encerra em 24 dias</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-hd">
+            <div class="table-hd-left">
+              <span class="table-hd-icon">🏆</span>
+              <span class="table-hd-title" data-i18n="rank_titulo2">Ranking Global</span>
+              <span class="table-hd-sub" id="rank-periodo-label">— Esta semana</span>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th data-i18n="th_pos">POS</th>
+              <th data-i18n="th_jogador">JOGADOR</th>
+              <th>PATENTE</th>
+              <th data-i18n="th_ganhos">GANHOS</th>
+              <th data-i18n="th_taxa">VITÓRIA %</th>
+              <th data-i18n="th_apostas">APOSTAS</th>
+            </tr></thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+        </div>
+
+        <!-- MINHA POSIÇÃO -->
+        <div class="rank-minha-pos" id="minha-pos-bar">
+          <span style="font-size:11px;color:var(--text2)" data-i18n="sua_posicao">Sua posição:</span>
+          <span class="rank-minha-pos-val" id="minha-pos-val">#6</span>
+          <span style="font-size:10px;color:var(--text2)" id="minha-pos-ganhos">2.500 coins ganhos</span>
+          <span style="font-size:9px;color:var(--text2)" id="minha-patente-atual">🟢 Recruta</span>
+        </div>
+      </div>
+
+      <!-- ══ DASHBOARD ══ -->
+      <div id="page-dashboard" class="page">
+        <div class="page-hd">
+          <div class="page-title" data-i18n="dash_titulo">📊 Meu Painel</div>
+          <div class="page-sub" data-i18n="dash_sub">Seu desempenho consolidado</div>
+        </div>
+        <div class="stat-cards">
+          <div class="stat-card">
+            <div class="stat-card-label" data-i18n="saldo_total">SALDO TOTAL</div>
+            <div class="stat-card-val" id="dash-saldo">10.000</div>
+            <div class="stat-card-sub up" data-i18n="esta_semana">+12.5% esta semana</div>
+            <div class="stat-card-icon">💰</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label" data-i18n="taxa_vitoria">TAXA DE VITÓRIA</div>
+            <div class="stat-card-val">64.2%</div>
+            <div class="stat-bar"><div class="stat-bar-fill" style="width:64.2%"></div></div>
+            <div class="stat-card-icon">🎯</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label" data-i18n="total_apostado">TOTAL APOSTADO</div>
+            <div class="stat-card-val">14.250</div>
+            <div class="stat-card-sub" style="color:var(--text2)" data-i18n="volume_vitalicio">Volume vitalício</div>
+            <div class="stat-card-icon">📈</div>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-box">
+            <div class="chart-filter-row">
+              <div class="chart-title" data-i18n="desempenho" style="margin-bottom:0">Desempenho de Lucro</div>
+              <div class="chart-period-btns">
+                <button class="cpbtn" onclick="mudarPeriodoChart(this,'dia')">Dia</button>
+                <button class="cpbtn on" onclick="mudarPeriodoChart(this,'semana')">Semana</button>
+                <button class="cpbtn" onclick="mudarPeriodoChart(this,'mes')">Mês</button>
+                <button class="cpbtn" onclick="mudarPeriodoChart(this,'ano')">Ano</button>
+              </div>
+            </div>
+            <canvas id="chart-profit" height="200" style="margin-top:12px"></canvas>
+          </div>
+          <div class="chart-box">
+            <div class="chart-title" data-i18n="hist_recente">Histórico Recente</div>
+            <div id="dash-hist-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ HISTÓRICO ══ -->
+      <div id="page-historico" class="page">
+        <div class="page-hd">
+          <div class="page-title" data-i18n="hist_titulo">📋 Histórico de Partidas</div>
+          <div class="page-sub" data-i18n="hist_sub">Registro completo das suas apostas</div>
+        </div>
+        <div class="filters">
+          <button class="hfbtn fbtn on" onclick="filtrarHist(this,'all')" data-i18n="todas">Todas</button>
+          <button class="hfbtn fbtn" onclick="filtrarHist(this,'ganhou')" data-i18n="vitórias">Vitórias</button>
+          <button class="hfbtn fbtn" onclick="filtrarHist(this,'perdeu')" data-i18n="derrotas">Derrotas</button>
+        </div>
+        <div class="table-wrap"><div id="hist-lista"></div></div>
+      </div>
+
+      <!-- ══ WALLET ══ -->
+      <div id="page-wallet" class="page">
+        <div class="page-hd">
+          <div class="page-title">💳 Carteira</div>
+          <div class="page-sub">Depósito e saque em reais</div>
+        </div>
+
+        <div style="max-width:480px;margin:0 auto">
+
+          <!-- Saldo -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;text-align:center">
+            <div style="font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:8px">SALDO DISPONÍVEL</div>
+            <div style="font-size:42px;font-weight:900;font-family:'Rajdhani',sans-serif;color:var(--accent)" id="wallet-saldo-val">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">coins · R$ <span id="wallet-saldo-reais">—</span></div>
+          </div>
+
+          <!-- Tabs dep/saq -->
+          <div class="w-tabs">
+            <button class="w-tab on" id="wtab-dep" onclick="wSetTab('dep',this)">💰 DEPOSITAR</button>
+            <button class="w-tab"    id="wtab-saq" onclick="wSetTab('saq',this)">💸 SACAR</button>
+            <button class="w-tab"    id="wtab-ext" onclick="wSetTab('ext',this)">📜 EXTRATO</button>
+          </div>
+
+          <!-- ── DEPÓSITO ── -->
+          <div id="w-panel-dep">
+            <div style="font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:10px">MÉTODO DE PAGAMENTO</div>
+            <div class="w-metodos">
+              <div class="w-metodo on" id="wm-pix" onclick="wSetMetodo('pix',this)">
+                <div class="w-metodo-icon">⚡</div>
+                <div class="w-metodo-label">PIX</div>
+                <div class="w-metodo-taxa">Sem taxa</div>
+              </div>
+              <div class="w-metodo" id="wm-boleto" onclick="wSetMetodo('boleto',this)">
+                <div class="w-metodo-icon">📄</div>
+                <div class="w-metodo-label">BOLETO</div>
+                <div class="w-metodo-taxa">+ R$ 3,49</div>
+              </div>
+              <div class="w-metodo" id="wm-cartao" onclick="wSetMetodo('cartao',this)">
+                <div class="w-metodo-icon">💳</div>
+                <div class="w-metodo-label">CARTÃO</div>
+                <div class="w-metodo-taxa">+ 4,99%</div>
+              </div>
+            </div>
+
+            <div style="font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:10px">VALOR DO DEPÓSITO (R$)</div>
+            <div class="w-valores">
+              <button class="w-val-btn" onclick="wSetValor(10,this)">R$ 10</button>
+              <button class="w-val-btn" onclick="wSetValor(20,this)">R$ 20</button>
+              <button class="w-val-btn" onclick="wSetValor(50,this)">R$ 50</button>
+              <button class="w-val-btn" onclick="wSetValor(100,this)">R$ 100</button>
+              <button class="w-val-btn" onclick="wSetValor(200,this)">R$ 200</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+              <span style="font-size:11px;color:var(--text3)">Outro valor:</span>
+              <input id="w-val-custom" type="number" min="5" placeholder="R$ 0,00"
+                style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+                padding:8px 12px;color:var(--text1);font-size:13px;font-family:var(--mono)"
+                oninput="wAtualizarResumo()"/>
+            </div>
+
+            <!-- Resumo -->
+            <div class="w-resumo" id="w-resumo">
+              <div class="w-resumo-row"><span>Você deposita</span><span id="wr-deposita">—</span></div>
+              <div class="w-resumo-row"><span id="wr-taxa-label">Taxa PIX</span><span id="wr-taxa" class="gold">R$ 0,00</span></div>
+              <div class="w-resumo-row"><span>Você recebe</span><span id="wr-coins" class="green">— coins</span></div>
+              <div class="w-resumo-row total"><span>TOTAL A PAGAR</span><span id="wr-total">—</span></div>
+            </div>
+
+            <button class="w-confirm-btn" id="w-dep-btn" onclick="confirmarDeposito()" disabled>
+              Continuar →
+            </button>
+
+            <!-- Resultado PIX / Boleto após confirmar -->
+            <div id="w-pix-result" style="display:none" class="pix-modal">
+              <div style="font-size:13px;font-weight:800;margin-bottom:14px;color:var(--accent)">⚡ PIX Gerado — pague em 30 min</div>
+              <div class="pix-qr"><img id="w-pix-img" src="" alt="QR Code PIX"/></div>
+              <div class="pix-copia" id="w-pix-codigo">—</div>
+              <button onclick="wCopiarPix()" style="width:100%;padding:11px;background:#001a0e;border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-weight:800;cursor:pointer;font-family:var(--sans);margin-bottom:8px">
+                📋 Copiar código PIX
+              </button>
+              <div style="font-size:10px;color:var(--text3)" id="w-pix-status">Aguardando pagamento...</div>
+            </div>
+
+            <div id="w-boleto-result" style="display:none" class="pix-modal">
+              <div style="font-size:13px;font-weight:800;margin-bottom:14px;color:#f5a623">📄 Boleto Gerado — vence em 3 dias</div>
+              <a id="w-boleto-link" href="#" target="_blank" class="boleto-link">🔗 Abrir boleto para pagamento</a>
+              <div class="pix-copia" id="w-boleto-codigo">—</div>
+              <button onclick="wCopiarBoleto()" style="width:100%;padding:11px;background:#1a1000;border:1px solid #f5a623;border-radius:8px;color:#f5a623;font-weight:800;cursor:pointer;font-family:var(--sans)">
+                📋 Copiar linha digitável
+              </button>
+            </div>
+          </div>
+
+          <!-- ── SAQUE ── -->
+          <div id="w-panel-saq" style="display:none">
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--text2)">
+              💡 Mínimo: <b>100 coins</b> (R$ 10,00) · Saque via PIX · Chega em até 10 minutos
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:8px">COINS PARA SACAR</div>
+              <input id="w-saq-coins" type="number" min="100" placeholder="ex: 500"
+                style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+                padding:10px 12px;color:var(--text1);font-size:16px;font-family:'Rajdhani',sans-serif;font-weight:700;box-sizing:border-box"
+                oninput="wAtualizarSaque()"/>
+              <div style="font-size:11px;color:var(--text3);margin-top:6px">= R$ <span id="w-saq-reais">0,00</span></div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:8px">SUA CHAVE PIX</div>
+              <input id="w-saq-pix" type="text" placeholder="CPF, email, telefone ou chave aleatória"
+                style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+                padding:10px 12px;color:var(--text1);font-size:13px;box-sizing:border-box"/>
+            </div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:10px;letter-spacing:2px;color:var(--text3);margin-bottom:8px">TIPO DA CHAVE</div>
+              <select id="w-saq-tipo" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;color:var(--text1);font-size:13px">
+                <option value="cpf">CPF</option>
+                <option value="email">E-mail</option>
+                <option value="phone">Telefone</option>
+                <option value="random">Chave aleatória</option>
+              </select>
+            </div>
+            <button class="w-confirm-btn" id="w-saq-btn" onclick="confirmarSaque()" disabled style="background:#ef5350;color:#fff">
+              Sacar via PIX →
+            </button>
+          </div>
+
+          <!-- ── EXTRATO ── -->
+          <div id="w-panel-ext" style="display:none">
+            <div id="w-extrato-list" style="font-size:12px">
+              <div style="text-align:center;padding:32px;color:var(--text3)">Carregando extrato...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+      <!-- ══ TUTORIAL / COMO JOGAR ══ -->
+      <div id="page-tutorial" class="page">
+        <div class="tut-wrap">
+
+          <!-- Hero -->
+          <div class="tut-hero">
+            <div class="tut-logo">CAR//BET</div>
+            <div class="tut-title">Aposte no <span>tráfego real.</span><br>Ganhe de verdade.</div>
+            <div class="tut-sub">Câmeras ao vivo contam veículos em rodovias reais. Você aposta em quantos vão passar. É isso.</div>
+          </div>
+
+          <!-- Steps -->
+          <div class="tut-steps">
+
+            <!-- Step 1 -->
+            <div class="tut-step">
+              <div class="tut-step-line"></div>
+              <div class="tut-step-num s1">1</div>
+              <div class="tut-step-body">
+                <div class="tut-step-tag s1">ESCOLHA A ARENA</div>
+                <div class="tut-step-title">Selecione uma câmera ao vivo</div>
+                <div class="tut-step-desc">Cada arena é uma câmera real instalada em uma via movimentada — rodovias, avenidas, cruzamentos. Hoje temos a <b>Toyota Arena</b> em São Paulo. Em breve Tokyo, NYC e mais.</div>
+                <div class="tut-step-card" style="display:flex;align-items:center;gap:12px">
+                  <div style="width:40px;height:40px;background:#001a0e;border:1px solid var(--accent2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏎</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:700">Toyota Arena</div>
+                    <div style="font-size:11px;color:var(--accent);margin-top:2px">● AO VIVO · São Paulo, BR</div>
+                  </div>
+                  <div style="margin-left:auto;font-size:11px;color:var(--text3)">5 jogadores</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="tut-step">
+              <div class="tut-step-line"></div>
+              <div class="tut-step-num s2">2</div>
+              <div class="tut-step-body">
+                <div class="tut-step-tag s2">FASE DE ANÁLISE · 5s</div>
+                <div class="tut-step-title">Observe o fluxo de veículos</div>
+                <div class="tut-step-desc">Antes das apostas abrirem, você tem <b>5 segundos</b> para observar o vídeo ao vivo. Analise: está movimentado? É horário de pico? Tem obras na via?</div>
+                <div class="tut-timeline-mini">
+                  <div class="tut-tl-step hl">ANÁLISE<div class="tut-tl-dur">5s ← você está aqui</div></div>
+                  <div class="tut-tl-step">APOSTAS<div class="tut-tl-dur">15s</div></div>
+                  <div class="tut-tl-step">FREEZE<div class="tut-tl-dur">5s</div></div>
+                  <div class="tut-tl-step">AO VIVO<div class="tut-tl-dur">30s</div></div>
+                  <div class="tut-tl-step">RESULTADO<div class="tut-tl-dur">5s</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="tut-step">
+              <div class="tut-step-line"></div>
+              <div class="tut-step-num s3">3</div>
+              <div class="tut-step-body">
+                <div class="tut-step-tag s3">FASE DE APOSTAS · 15s</div>
+                <div class="tut-step-title">Escolha sua faixa e valor</div>
+                <div class="tut-step-desc">Você tem <b>4 faixas</b> para apostar. Cada faixa é um intervalo de veículos que vão cruzar a linha de contagem nos próximos 30 segundos. As odds mudam conforme os outros apostam.</div>
+                <div class="tut-faixas">
+                  <div class="tut-faixa">
+                    <div class="tut-faixa-num">0–4</div>
+                    <div class="tut-faixa-odd">3.20×</div>
+                  </div>
+                  <div class="tut-faixa hot">
+                    <div class="tut-faixa-num">5–9</div>
+                    <div class="tut-faixa-odd" style="color:var(--accent)">1.85× 🔥</div>
+                  </div>
+                  <div class="tut-faixa">
+                    <div class="tut-faixa-num">10–14</div>
+                    <div class="tut-faixa-odd">2.40×</div>
+                  </div>
+                  <div class="tut-faixa">
+                    <div class="tut-faixa-num">15+</div>
+                    <div class="tut-faixa-odd">4.10×</div>
+                  </div>
+                </div>
+                <div class="tut-step-card" style="margin-top:12px;font-size:12px;color:var(--text2);line-height:1.8">
+                  <b style="color:var(--text1)">Como as odds funcionam:</b> quanto mais gente aposta na mesma faixa, menor a odd. Faixas com poucos apostadores pagam mais — mas são mais arriscadas.
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="tut-step">
+              <div class="tut-step-line"></div>
+              <div class="tut-step-num s4">4</div>
+              <div class="tut-step-body">
+                <div class="tut-step-tag s4">AO VIVO · 30s</div>
+                <div class="tut-step-title">Assista a IA contar em tempo real</div>
+                <div class="tut-step-desc">Apostas fechadas. A IA da CarBet usa <b>visão computacional</b> (YOLOv8 + ByteTrack) para detectar e contar cada veículo que cruza a linha. Você vê o número aumentar ao vivo.</div>
+                <div class="tut-step-card" style="display:flex;align-items:center;gap:16px">
+                  <div style="font-size:56px;font-weight:900;font-family:'Rajdhani',sans-serif;color:var(--accent);line-height:1;text-shadow:0 0 30px rgba(0,230,118,.4)">7</div>
+                  <div>
+                    <div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.4)">CARROS</div>
+                    <div style="font-size:11px;color:var(--accent);margin-top:4px;font-weight:700">✓ DENTRO DO RANGE (5-9)</div>
+                    <div style="font-size:10px;color:var(--text3);margin-top:2px">você apostou 5-9 · está ganhando</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="tut-step">
+              <div class="tut-step-num s5">5</div>
+              <div class="tut-step-body">
+                <div class="tut-step-tag s5">RESULTADO</div>
+                <div class="tut-step-title">Ganhe e repita</div>
+                <div class="tut-step-desc">A contagem final é revelada. Quem apostou na faixa correta recebe o prêmio multiplicado pela odd. Nova rodada começa em segundos.</div>
+                <div class="tut-step-card" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div style="text-align:center">
+                    <div style="font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:4px">VOCÊ APOSTOU</div>
+                    <div style="font-size:18px;font-weight:800">200 coins</div>
+                    <div style="font-size:11px;color:var(--text3)">faixa 5-9 · odd 1.85×</div>
+                  </div>
+                  <div style="text-align:center;border-left:1px solid var(--border)">
+                    <div style="font-size:10px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">VOCÊ GANHOU</div>
+                    <div style="font-size:18px;font-weight:800;color:var(--accent)">+170 coins</div>
+                    <div style="font-size:11px;color:var(--text3)">lucro líquido</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- fim steps -->
+
+          <!-- CTA -->
+          <div class="tut-cta">
+            <button class="tut-cta-btn" onclick="navegar('arenas')">Jogar agora →</button>
+            <div class="tut-cta-sub">Rodadas a cada ~60 segundos · Modo simulador disponível</div>
+          </div>
+
+          <hr class="tut-divider" style="margin-top:40px">
+
+          <!-- FAQ -->
+          <div class="tut-faq">
+            <div class="tut-faq-title">PERGUNTAS FREQUENTES</div>
+
+            <div class="tut-faq-item" onclick="toggleFaq(this)">
+              <div class="tut-faq-q">A contagem é mesmo feita por IA? <svg class="tut-faq-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="tut-faq-a">Sim. Usamos YOLOv8 (modelo de detecção de objetos de última geração) combinado com ByteTrack (algoritmo de rastreamento multi-objeto) rodando sobre câmeras reais instaladas nas vias. Cada veículo recebe um ID único e é rastreado individualmente — sem possibilidade de adulteração manual.</div>
+            </div>
+
+            <div class="tut-faq-item" onclick="toggleFaq(this)">
+              <div class="tut-faq-q">O que é a "linha de contagem"? <svg class="tut-faq-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="tut-faq-a">É uma linha virtual configurada na imagem da câmera. Toda vez que um veículo cruza essa linha, a contagem aumenta em 1. A linha é visível no vídeo da arena (tracejado verde). Sua posição é definida pela equipe técnica ao instalar a câmera.</div>
+            </div>
+
+            <div class="tut-faq-item" onclick="toggleFaq(this)">
+              <div class="tut-faq-q">Como as odds são calculadas? <svg class="tut-faq-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="tut-faq-a">As odds são dinâmicas e baseadas no pool de apostas. Quanto mais coins apostados em uma faixa, menor a odd — porque o prêmio é dividido entre mais vencedores. A casa retém uma margem de 5% (rake) sobre o volume total. As odds são atualizadas em tempo real durante a fase de apostas.</div>
+            </div>
+
+            <div class="tut-faq-item" onclick="toggleFaq(this)">
+              <div class="tut-faq-q">Posso perder tudo? <svg class="tut-faq-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="tut-faq-a">Atualmente a plataforma opera em <b>modo simulador</b> — os coins são virtuais e não têm valor monetário real. Você pode depositar e sacar coins virtuais para praticar estratégias sem risco. A versão com dinheiro real chegará em breve, seguindo todas as regulamentações brasileiras.</div>
+            </div>
+
+            <div class="tut-faq-item" onclick="toggleFaq(this)">
+              <div class="tut-faq-q">Com que frequência ocorrem as rodadas? <svg class="tut-faq-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="tut-faq-a">Cada rodada dura aproximadamente 60 segundos: 5s de análise, 15s de apostas, 5s de freeze, 30s ao vivo e 5s de resultado. Em seguida a próxima rodada começa automaticamente — 24 horas por dia, 7 dias por semana.</div>
+            </div>
+
+          </div><!-- fim faq -->
+
+        </div><!-- fim tut-wrap -->
+      </div><!-- fim page-tutorial -->
+
+      <!-- ══ MAPA ══ -->
+      <div id="page-mapa" class="page">
+        <div class="page-hd">
+          <div class="page-title">🗺️ Pontos de Captura</div>
+          <div class="page-sub">Localização das câmeras ativas ao redor do mundo</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 260px;gap:14px;height:calc(100vh - 160px)">
+          <!-- MAPA IFRAME -->
+          <div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);position:relative">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d15000000!2d10!3d20!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1709999999999!5m2!1spt-BR!2sbr&markers=color:red%7Clabel:B%7C-23.5489,-46.6388&markers=color:red%7Clabel:T%7C35.6762,139.6503&markers=color:red%7Clabel:N%7C40.7580,-73.9855&markers=color:red%7Clabel:BE%7C52.5200,13.4050&markers=color:red%7Clabel:D%7C25.2048,55.2708"
+              style="width:100%;height:100%;border:none;filter:invert(90%) hue-rotate(180deg)"
+              allowfullscreen loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+            <!-- Overlay com pins customizados -->
+            <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(14,17,23,.3),transparent 20%)"></div>
+          </div>
+          <!-- LISTA LATERAL -->
+          <div style="display:flex;flex-direction:column;gap:10px;overflow-y:auto">
+            <div class="table-wrap">
+              <div class="table-hd"><div class="table-hd-left"><span class="table-hd-icon">📍</span><span class="table-hd-title">Câmeras Ativas</span></div></div>
+              <div style="padding:8px">
+                <div class="map-arena-item real" onclick="focarMapa(-23.5489,-46.6388,'Brazil Highway')">
+                  <div class="map-arena-dot" style="background:var(--accent);animation:lpulse 2s infinite"></div>
+                  <div>
+                    <div class="map-arena-name">Brazil Highway</div>
+                    <div class="map-arena-loc">📍 São Paulo, BR · CAM-01A</div>
+                    <div style="font-size:9px;margin-top:2px"><span style="color:var(--accent)">● AO VIVO</span></div>
+                  </div>
+                </div>
+                <div class="map-arena-item" style="opacity:.5">
+                  <div class="map-arena-dot" style="background:var(--text3)"></div>
+                  <div>
+                    <div class="map-arena-name">Tokyo Crossing</div>
+                    <div class="map-arena-loc">📍 Shibuya, JP · CAM-02A</div>
+                    <div style="font-size:9px;margin-top:2px;color:var(--text3)">● Em breve</div>
+                  </div>
+                </div>
+                <div class="map-arena-item" style="opacity:.5">
+                  <div class="map-arena-dot" style="background:var(--text3)"></div>
+                  <div>
+                    <div class="map-arena-name">NYC Avenue</div>
+                    <div class="map-arena-loc">📍 Manhattan, US · CAM-03A</div>
+                    <div style="font-size:9px;margin-top:2px;color:var(--text3)">● Em breve</div>
+                  </div>
+                </div>
+                <div class="map-arena-item" style="opacity:.5">
+                  <div class="map-arena-dot" style="background:var(--text3)"></div>
+                  <div>
+                    <div class="map-arena-name">Berlin Autobahn</div>
+                    <div class="map-arena-loc">📍 Berlin, DE · CAM-04A</div>
+                    <div style="font-size:9px;margin-top:2px;color:var(--text3)">● Em breve</div>
+                  </div>
+                </div>
+                <div class="map-arena-item" style="opacity:.5">
+                  <div class="map-arena-dot" style="background:var(--text3)"></div>
+                  <div>
+                    <div class="map-arena-name">Dubai Highway</div>
+                    <div class="map-arena-loc">📍 Dubai, AE · CAM-05A</div>
+                    <div style="font-size:9px;margin-top:2px;color:var(--text3)">● Em breve</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <div class="table-hd"><div class="table-hd-left"><span class="table-hd-icon">📊</span><span class="table-hd-title">Estatísticas</span></div></div>
+              <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text2)">Câmeras ativas</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--accent)">1 / 5</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text2)">Cobertura</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700">4 continentes</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text2)">Resolução</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700">1080p 30fps</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text2)">Latência</span><span style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--accent)">&lt;200ms</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+
+<!-- ══ MODAL RESULTADO ══ -->
+<div id="resultado-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div id="resultado-modal" style="background:var(--bg2);border:2px solid var(--border);border-radius:20px;padding:0;max-width:400px;width:92%;text-align:center;position:relative;overflow:hidden">
+    <!-- Confetti container -->
+    <div class="res-confetti-wrap" id="res-confetti"></div>
+
+    <!-- Header colorido -->
+    <div id="res-header" style="padding:28px 28px 20px;position:relative">
+      <div id="res-icon" style="font-size:52px;line-height:1;margin-bottom:10px"></div>
+      <div id="res-titulo" style="font-size:24px;font-weight:900;margin-bottom:4px"></div>
+      <div id="res-sub" style="font-size:12px;color:var(--text2);line-height:1.6"></div>
+    </div>
+
+    <!-- Número grande -->
+    <div style="padding:0 28px 20px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px 16px;margin-bottom:14px">
+        <div style="font-size:9px;letter-spacing:2px;color:var(--text3);margin-bottom:8px">VEÍCULOS CONTADOS</div>
+        <div class="res-big-num" id="res-big-num">0</div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;font-size:11px;color:var(--text3)">
+          <span>Faixa vencedora: <b id="res-faixa-v" style="color:#f5a623">—</b></span>
+          <span>·</span>
+          <span>Sua aposta: <b id="res-faixa-u">—</b></span>
+        </div>
+      </div>
+
+      <!-- Ganho/perda -->
+      <div id="res-ganho-wrap" style="margin-bottom:16px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+        <div id="res-ganho" style="font-size:36px;font-weight:900;font-family:'Rajdhani',sans-serif"></div>
+        <div id="res-ganho-label" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+
+      <button onclick="fecharResultado()" id="res-btn"
+        style="width:100%;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:900;cursor:pointer;font-family:var(--sans);letter-spacing:.5px;transition:.2s">
+        Próxima Rodada →
+      </button>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;padding-bottom:4px">
+        fecha automaticamente em <span id="res-countdown">6</span>s
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='http://127.0.0.1:8000',WS='ws://127.0.0.1:8000/ws';
+let ws2,faixaSelecionada=null,valorAposta=200,minhaAposta=null,rodadaAtual=null,feedHash='';
+const CARBET_API = 'http://127.0.0.1:8001';
+let linhaAtual = null;      // {ax,ay,bx,by} coords 640x360
+let linhaAnimFrame = null;
+
+// ── Overlay completo: carrega config e desenha linha + faixas no canvas ───────
+let overlayConfig = null;  // config completa do overlay (faixas + linha + opções)
+
+async function carregarLinha(arenaId, videoNome) {
+  try {
+    // Tenta config_overlay primeiro (nova API com faixas)
+    const r = await fetch(`${CARBET_API}/arenas/${arenaId}/config_overlay`);
+    if (r.ok) {
+      const cfg = await r.json();
+      overlayConfig = cfg;
+      linhaAtual = cfg.linha_contagem ? {
+        ax: Math.round(cfg.linha_contagem.ax * 640),
+        ay: Math.round(cfg.linha_contagem.ay * 360),
+        bx: Math.round(cfg.linha_contagem.bx * 640),
+        by: Math.round(cfg.linha_contagem.by * 360),
+      } : null;
+      desenharLinha();
+      return;
+    }
+  } catch {}
+  // Fallback: linhas.json legado
+  try {
+    const r2 = await fetch(`${CARBET_API}/arenas/${arenaId}/linhas`);
+    if (!r2.ok) return;
+    const linhas = await r2.json();
+    linhaAtual = linhas[videoNome] || null;
+    overlayConfig = null;
+    desenharLinha();
+  } catch(e) { linhaAtual = null; desenharLinha(); }
+}
+
+function desenharLinha() {
+  const canvas = document.getElementById('arena-linha-canvas');
+  if (!canvas) return;
+  const wrap = document.getElementById('arena-video-wrap');
+  if (!wrap) return;
+
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Coordenadas: vídeo 640x360 → escala para o canvas exibido
+  const vw = 640, vh = 360;
+  const dw = canvas.width, dh = canvas.height;
+  const scale = Math.max(dw/vw, dh/vh);
+  const offX = (dw - vw*scale) / 2;
+  const offY = (dh - vh*scale) / 2;
+
+  // Converte pixels do vídeo → canvas
+  function px2c(x, y) { return { x: offX + x*scale, y: offY + y*scale }; }
+  // Converte normalizadas 0-1 → canvas
+  function n2c(nx, ny) { return px2c(nx*vw, ny*vh); }
+
+  const esp = overlayConfig?.overlay?.espessura || 2;
+  const mostrarLabels = overlayConfig?.overlay?.labels !== false;
+
+  // ── FAIXAS DE VIA ──────────────────────────────────────────────
+  if (overlayConfig?.faixas?.length) {
+    overlayConfig.faixas.forEach((f, i) => {
+      const p1 = n2c(f.p1.x, f.p1.y);
+      const p2 = n2c(f.p2.x, f.p2.y);
+      const cor = f.cor || '#00ff96';
+
+      // Linha tracejada da faixa
+      ctx.save();
+      ctx.strokeStyle = cor;
+      ctx.lineWidth   = esp;
+      ctx.setLineDash([6, 5]);
+      ctx.shadowColor = cor;
+      ctx.shadowBlur  = 4;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+      ctx.restore();
+
+      // Labels desativados — faixas são bordas de via
+    });
+  }
+
+  // ── LINHA DE CONTAGEM ──────────────────────────────────────────
+  if (!linhaAtual) {
+    linhaAnimFrame = requestAnimationFrame(desenharLinha);
+    return;
+  }
+
+  const a = px2c(linhaAtual.ax, linhaAtual.ay);
+  const b = px2c(linhaAtual.bx, linhaAtual.by);
+  const corLinha = overlayConfig?.linha_contagem ? '#00ffe0' : '#00ff88';
+  const pulse = (Math.sin(Date.now() / 300) + 1) / 2;
+
+  // Glow externo
+  ctx.save();
+  ctx.shadowColor = corLinha; ctx.shadowBlur = 18;
+  ctx.strokeStyle = corLinha + '40'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  ctx.restore();
+
+  // Linha animada
+  ctx.save();
+  ctx.shadowColor = corLinha; ctx.shadowBlur = 10;
+  ctx.strokeStyle = `rgba(0,${Math.round(220+35*pulse)},${Math.round(180+75*pulse)},1)`;
+  ctx.lineWidth = esp + 1; ctx.lineCap = 'round';
+  ctx.setLineDash([12, 5]);
+  ctx.lineDashOffset = -(Date.now() / 30) % 17;
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  ctx.restore();
+
+  // Marcadores de faixa na linha (diamantes coloridos)
+  if (overlayConfig?.faixas?.length) {
+    overlayConfig.faixas.forEach(f => {
+      const fp1 = n2c(f.p1.x, f.p1.y), fp2 = n2c(f.p2.x, f.p2.y);
+      const inter = lineLineIntersect(a, b, fp1, fp2);
+      if (inter) {
+        ctx.save();
+        ctx.translate(inter.x, inter.y); ctx.rotate(Math.PI/4);
+        ctx.fillStyle = f.cor || '#fff';
+        ctx.shadowColor = f.cor; ctx.shadowBlur = 8;
+        ctx.fillRect(-5, -5, 10, 10);
+        ctx.restore();
+      }
+    });
+  }
+
+  // Pontos A e B
+  [a, b].forEach(pt => {
+    ctx.save();
+    ctx.shadowColor = corLinha; ctx.shadowBlur = 14;
+    ctx.fillStyle = corLinha;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = corLinha + '60'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 9, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  });
+
+  // Seta de direção
+  const mid = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+  const ang = Math.atan2(b.y-a.y, b.x-a.x);
+  ctx.save();
+  ctx.translate(mid.x, mid.y); ctx.rotate(ang);
+  ctx.fillStyle = corLinha; ctx.shadowColor = corLinha; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-5,-5); ctx.lineTo(-5,5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  linhaAnimFrame = requestAnimationFrame(desenharLinha);
+}
+
+// Intersecção de dois segmentos (para diamantes nas faixas)
+function lineLineIntersect(a, b, c, d) {
+  const r={x:b.x-a.x,y:b.y-a.y}, s={x:d.x-c.x,y:d.y-c.y};
+  const denom = r.x*s.y - r.y*s.x;
+  if (Math.abs(denom) < 1e-10) return null;
+  const t = ((c.x-a.x)*s.y - (c.y-a.y)*s.x) / denom;
+  const u = ((c.x-a.x)*r.y - (c.y-a.y)*r.x) / denom;
+  if (t>=0&&t<=1&&u>=0&&u<=1) return {x:a.x+t*r.x, y:a.y+t*r.y};
+  return null;
+}
+
+function pararAnimacaoLinha() {
+  if (linhaAnimFrame) { cancelAnimationFrame(linhaAnimFrame); linhaAnimFrame = null; }
+  linhaAtual = null;
+  const canvas = document.getElementById('arena-linha-canvas');
+  if (canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+let timerInt=null,timerSeg=0,faseAtual='';
+let usuario=null;
+let walletMode='',chartInst=null;
+
+/* ── LOGIN ── */
+function trocarTabLogin(tab){
+  document.getElementById('painel-login-entrar').style.display=tab==='entrar'?'block':'none';
+  document.getElementById('painel-login-cadastro').style.display=tab==='cadastro'?'block':'none';
+  document.getElementById('ltab-entrar').classList.toggle('on',tab==='entrar');
+  document.getElementById('ltab-cadastro').classList.toggle('on',tab==='cadastro');
+  document.getElementById('login-erro-cb').textContent='';
+  document.getElementById('login-erro-cb2').textContent='';
+}
+function setErroLogin(msg,campo=1){
+  document.getElementById('login-erro-cb'+(campo===2?'2':'')).textContent=msg;
+}
+function entrarApp(dados){
+  usuario={...dados};
+  localStorage.setItem('cb_user',JSON.stringify(usuario));
+  document.getElementById('tela-login-arenas').style.display='none';
+  document.getElementById('tb-avatar').textContent=(dados.username||'?').slice(0,2).toUpperCase();
+  document.getElementById('tb-saldo').textContent=Number(dados.saldo||0).toLocaleString('pt-BR');
+  conectarWS2();
+  buscarEstado();
+}
+async function fazerLoginArenas(){
+  const u=document.getElementById('inp-user').value.trim();
+  const s=document.getElementById('inp-pass').value.trim();
+  if(!u||!s) return setErroLogin('Preencha todos os campos');
+  const btn=document.getElementById('btn-entrar');
+  btn.disabled=true;btn.textContent='...';
+  try{
+    const r=await fetch(`${API}/usuarios/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,senha:s})});
+    const d=await r.json();
+    if(!r.ok) return setErroLogin(d.detail||'Usuário ou senha incorretos');
+    entrarApp({...d,senha:s});
+  }catch(e){setErroLogin('Servidor offline — verifique o uvicorn');}
+  finally{btn.disabled=false;btn.textContent='▶ ENTRAR';}
+}
+async function fazerCadastroArenas(){
+  const u=document.getElementById('inp-novo-user').value.trim();
+  const p=document.getElementById('inp-novo-pass').value;
+  const p2=document.getElementById('inp-novo-pass2').value;
+  if(!u||!p) return setErroLogin('Preencha usuário e senha',2);
+  if(p!==p2) return setErroLogin('Senhas não coincidem',2);
+  if(p.length<4) return setErroLogin('Mínimo 4 caracteres',2);
+  const btn=document.getElementById('btn-cadastrar');
+  btn.disabled=true;btn.textContent='...';
+  try{
+    const r=await fetch(`${API}/usuarios/cadastrar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,senha:p})});
+    const d=await r.json();
+    if(d.ok||d.username){
+      // Auto-login
+      document.getElementById('inp-user').value=u;
+      document.getElementById('inp-pass').value=p;
+      trocarTabLogin('entrar');
+      await fazerLoginArenas();
+    } else {
+      setErroLogin(d.detail||d.erro||'Erro ao cadastrar',2);
+    }
+  }catch(e){setErroLogin('Servidor offline — verifique o uvicorn',2);}
+  finally{btn.disabled=false;btn.textContent='✦ CRIAR CONTA';}
+}
+// Enter nos campos
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  const loginVisivel=document.getElementById('tela-login-arenas').style.display!=='none';
+  if(!loginVisivel) return;
+  if(document.getElementById('painel-login-entrar').style.display!=='none') fazerLoginArenas();
+  else fazerCadastroArenas();
+});
+
+/* ── I18N ── */
+const LANGS={
+  pt:{flag:'🇧🇷',code:'PT',nav_arenas:'Arenas',nav_leaderboard:'Ranking',nav_dashboard:'Painel',nav_historico:'Histórico',nav_wallet:'Carteira',nav_config:'Configurações',live_market:'MERCADO AO VIVO',arenas_ativas:'4 arenas ativas',arenas_titulo:'Arenas ao Vivo',arenas_sub:'Selecione uma arena para começar a apostar',todas:'Todas',ao_vivo:'🔴 Ao Vivo',alto_vol:'⚡ Alto Volume',volume:'Volume',fase:'Fase',em_breve:'Em breve!',em_breve_c:'Em breve',jogadores:'jogadores',etapas_rodada:'ETAPAS DA RODADA',fase_analise:'ANÁLISE',fase_apostas:'APOSTAS',fase_evento:'AO VIVO',fase_resultado:'RESULTADO',tempo_restante:'TEMPO RESTANTE',atividade_ao_vivo:'ATIVIDADE AO VIVO',aguardando:'Aguardando apostas...',fazer_aposta:'FAZER APOSTA',valor_aposta:'VALOR DA APOSTA',retorno_potencial:'Retorno Potencial',apostar:'APOSTAR',rank_titulo:'🏆 Ranking Global',rank_sub:'Compare seu desempenho com os melhores',rank_titulo2:'Ranking Global',sistema_patentes:'SISTEMA DE PATENTES',dia:'Dia',semana:'Semana',mes:'Mês',ano:'Ano',temporada:'Temporada',encerra:'Encerra em 24 dias',sua_posicao:'Sua posição:',th_pos:'POS',th_jogador:'JOGADOR',th_ganhos:'GANHOS',th_taxa:'VITÓRIA %',th_apostas:'APOSTAS',dash_titulo:'📊 Meu Painel',dash_sub:'Seu desempenho consolidado',saldo_total:'SALDO TOTAL',taxa_vitoria:'TAXA DE VITÓRIA',total_apostado:'TOTAL APOSTADO',esta_semana:'+12.5% esta semana',volume_vitalicio:'Volume vitalício',desempenho:'Desempenho de Lucro (semana)',hist_recente:'Histórico Recente',hist_titulo:'📋 Histórico de Partidas',hist_sub:'Registro completo das suas apostas',vitórias:'Vitórias',derrotas:'Derrotas',wallet_titulo:'💳 Carteira',wallet_sub:'Gerencie seus fundos',saldo_disp:'SALDO DISPONÍVEL',modo_simulador:'Modo simulador',depositar:'💰 DEPOSITAR',sacar:'💸 SACAR',valor:'VALOR',extrato:'Extrato',confirmar:'CONFIRMAR'},
+  en:{flag:'🇺🇸',code:'EN',nav_arenas:'Arenas',nav_leaderboard:'Leaderboard',nav_dashboard:'Dashboard',nav_historico:'History',nav_wallet:'Wallet',nav_config:'Settings',live_market:'LIVE MARKET ACTIVE',arenas_ativas:'4 active arenas',arenas_titulo:'Live Arenas',arenas_sub:'Select an arena to start betting',todas:'All',ao_vivo:'🔴 Live',alto_vol:'⚡ High Volume',volume:'Volume',fase:'Phase',em_breve:'Coming soon!',em_breve_c:'Coming soon',jogadores:'players',etapas_rodada:'ROUND STAGES',fase_analise:'ANALYSIS',fase_apostas:'BETTING',fase_evento:'LIVE',fase_resultado:'RESULT',tempo_restante:'TIME LEFT',atividade_ao_vivo:'LIVE ACTIVITY',aguardando:'Waiting for bets...',fazer_aposta:'PLACE YOUR BET',valor_aposta:'WAGER AMOUNT',retorno_potencial:'Potential Return',apostar:'PLACE BET',rank_titulo:'🏆 Global Leaderboard',rank_sub:'Compare your performance with the best',rank_titulo2:'Global Leaderboard',sistema_patentes:'RANK SYSTEM',dia:'Day',semana:'Week',mes:'Month',ano:'Year',temporada:'Season',encerra:'Ends in 24 days',sua_posicao:'Your position:',th_pos:'RANK',th_jogador:'PLAYER',th_ganhos:'WINNINGS',th_taxa:'WIN %',th_apostas:'BETS',dash_titulo:'📊 Dashboard',dash_sub:'Your consolidated stats',saldo_total:'TOTAL BALANCE',taxa_vitoria:'WIN RATE',total_apostado:'TOTAL WAGERED',esta_semana:'+12.5% this week',volume_vitalicio:'Lifetime volume',desempenho:'Profit Performance (week)',hist_recente:'Recent History',hist_titulo:'📋 Match History',hist_sub:'Complete record of your bets',vitórias:'Wins',derrotas:'Losses',wallet_titulo:'💳 Wallet',wallet_sub:'Manage your funds',saldo_disp:'AVAILABLE BALANCE',modo_simulador:'Simulator mode',depositar:'💰 DEPOSIT',sacar:'💸 WITHDRAW',valor:'AMOUNT',extrato:'Statement',confirmar:'CONFIRM'},
+  es:{flag:'🇪🇸',code:'ES',nav_arenas:'Arenas',nav_leaderboard:'Ranking',nav_dashboard:'Panel',nav_historico:'Historial',nav_wallet:'Billetera',nav_config:'Ajustes',live_market:'MERCADO EN VIVO',arenas_ativas:'4 arenas activas',arenas_titulo:'Arenas en Vivo',arenas_sub:'Selecciona una arena para apostar',todas:'Todas',ao_vivo:'🔴 En Vivo',alto_vol:'⚡ Alto Volumen',volume:'Volumen',fase:'Fase',em_breve:'¡Próximamente!',em_breve_c:'Próximamente',jogadores:'jugadores',etapas_rodada:'ETAPAS DE RONDA',fase_analise:'ANÁLISIS',fase_apostas:'APUESTAS',fase_evento:'EN VIVO',fase_resultado:'RESULTADO',tempo_restante:'TIEMPO RESTANTE',atividade_ao_vivo:'ACTIVIDAD EN VIVO',aguardando:'Esperando apuestas...',fazer_aposta:'HACER APUESTA',valor_aposta:'CANTIDAD',retorno_potencial:'Retorno Potencial',apostar:'APOSTAR',rank_titulo:'🏆 Ranking Global',rank_sub:'Compara tu rendimiento',rank_titulo2:'Ranking Global',sistema_patentes:'SISTEMA DE RANGOS',dia:'Día',semana:'Semana',mes:'Mes',ano:'Año',temporada:'Temporada',encerra:'Termina en 24 días',sua_posicao:'Tu posición:',th_pos:'POS',th_jogador:'JUGADOR',th_ganhos:'GANANCIAS',th_taxa:'VICTORIA %',th_apostas:'APUESTAS',dash_titulo:'📊 Panel',dash_sub:'Tu rendimiento',saldo_total:'SALDO TOTAL',taxa_vitoria:'TASA VICTORIA',total_apostado:'TOTAL APOSTADO',esta_semana:'+12.5% esta semana',volume_vitalicio:'Volumen de por vida',desempenho:'Rendimiento (semana)',hist_recente:'Historial Reciente',hist_titulo:'📋 Historial',hist_sub:'Registro de apuestas',vitórias:'Victorias',derrotas:'Derrotas',wallet_titulo:'💳 Billetera',wallet_sub:'Administra tus fondos',saldo_disp:'SALDO DISPONIBLE',modo_simulador:'Modo simulador',depositar:'💰 DEPOSITAR',sacar:'💸 RETIRAR',valor:'VALOR',extrato:'Extracto',confirmar:'CONFIRMAR'},
+  fr:{flag:'🇫🇷',code:'FR',nav_arenas:'Arènes',nav_leaderboard:'Classement',nav_dashboard:'Tableau',nav_historico:'Historique',nav_wallet:'Portefeuille',nav_config:'Paramètres',live_market:'MARCHÉ EN DIRECT',arenas_ativas:'4 arènes actives',arenas_titulo:'Arènes en Direct',arenas_sub:'Choisissez une arène pour parier',todas:'Toutes',ao_vivo:'🔴 En Direct',alto_vol:'⚡ Haut Volume',volume:'Volume',fase:'Phase',em_breve:'Bientôt!',em_breve_c:'Bientôt',jogadores:'joueurs',etapas_rodada:'ÉTAPES DU TOUR',fase_analise:'ANALYSE',fase_apostas:'PARIS',fase_evento:'EN DIRECT',fase_resultado:'RÉSULTAT',tempo_restante:'TEMPS RESTANT',atividade_ao_vivo:'ACTIVITÉ EN DIRECT',aguardando:'En attente de paris...',fazer_aposta:'PLACER UN PARI',valor_aposta:'MISE',retorno_potencial:'Retour Potentiel',apostar:'PARIER',rank_titulo:'🏆 Classement Mondial',rank_sub:'Comparez vos performances',rank_titulo2:'Classement Mondial',sistema_patentes:'SYSTÈME DE GRADES',dia:'Jour',semana:'Semaine',mes:'Mois',ano:'Année',temporada:'Saison',encerra:'Se termine dans 24 jours',sua_posicao:'Votre position:',th_pos:'POS',th_jogador:'JOUEUR',th_ganhos:'GAINS',th_taxa:'VICTOIRE %',th_apostas:'PARIS',dash_titulo:'📊 Tableau de Bord',dash_sub:'Vos performances',saldo_total:'SOLDE TOTAL',taxa_vitoria:'TAUX VICTOIRE',total_apostado:'TOTAL MISÉ',esta_semana:'+12.5% cette semaine',volume_vitalicio:'Volume à vie',desempenho:'Performance (semaine)',hist_recente:'Historique Récent',hist_titulo:'📋 Historique',hist_sub:'Registre de vos paris',vitórias:'Victoires',derrotas:'Défaites',wallet_titulo:'💳 Portefeuille',wallet_sub:'Gérez vos fonds',saldo_disp:'SOLDE DISPONIBLE',modo_simulador:'Mode simulateur',depositar:'💰 DÉPOSER',sacar:'💸 RETIRER',valor:'MONTANT',extrato:'Relevé',confirmar:'CONFIRMER'},
+  ja:{flag:'🇯🇵',code:'JA',nav_arenas:'アリーナ',nav_leaderboard:'ランキング',nav_dashboard:'ダッシュボード',nav_historico:'履歴',nav_wallet:'ウォレット',nav_config:'設定',live_market:'ライブマーケット',arenas_ativas:'4つのアリーナ',arenas_titulo:'ライブアリーナ',arenas_sub:'アリーナを選んでベットしよう',todas:'すべて',ao_vivo:'🔴 ライブ',alto_vol:'⚡ 高ボリューム',volume:'ボリューム',fase:'フェーズ',em_breve:'近日公開！',em_breve_c:'近日公開',jogadores:'プレイヤー',etapas_rodada:'ラウンドの段階',fase_analise:'分析',fase_apostas:'ベット',fase_evento:'ライブ',fase_resultado:'結果',tempo_restante:'残り時間',atividade_ao_vivo:'ライブアクティビティ',aguardando:'ベット待機中...',fazer_aposta:'ベットする',valor_aposta:'ベット金額',retorno_potencial:'潜在リターン',apostar:'ベット',rank_titulo:'🏆 グローバルランキング',rank_sub:'トッププレイヤーと比較',rank_titulo2:'グローバルランキング',sistema_patentes:'ランクシステム',dia:'今日',semana:'週間',mes:'月間',ano:'年間',temporada:'シーズン',encerra:'24日後に終了',sua_posicao:'あなたの順位:',th_pos:'順位',th_jogador:'プレイヤー',th_ganhos:'獲得',th_taxa:'勝率',th_apostas:'ベット数',dash_titulo:'📊 ダッシュボード',dash_sub:'あなたの成績',saldo_total:'総残高',taxa_vitoria:'勝率',total_apostado:'総ベット額',esta_semana:'今週+12.5%',volume_vitalicio:'生涯ボリューム',desempenho:'利益パフォーマンス（週間）',hist_recente:'最近の履歴',hist_titulo:'📋 試合履歴',hist_sub:'ベット完全記録',vitórias:'勝利',derrotas:'敗北',wallet_titulo:'💳 ウォレット',wallet_sub:'資金管理',saldo_disp:'利用可能残高',modo_simulador:'シミュレーターモード',depositar:'💰 入金',sacar:'💸 出金',valor:'金額',extrato:'明細',confirmar:'確認'}
+};
+let langAtual='pt';
+function i18n(k){return LANGS[langAtual][k]||k;}
+function setLang(l){
+  langAtual=l;
+  const d=LANGS[l];
+  document.getElementById('lang-flag').textContent=d.flag;
+  document.getElementById('lang-code').textContent=d.code;
+  document.querySelectorAll('.lang-opt').forEach((o,i)=>{
+    o.classList.remove('active');
+    if(['pt','en','es','fr','ja'][i]===l) o.classList.add('active');
+  });
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    if(d[k]) el.textContent=d[k];
+  });
+  document.getElementById('lang-dropdown').classList.remove('open');
+  localStorage.setItem('cb_lang',l);
+}
+function toggleLang(e){e.stopPropagation();document.getElementById('lang-dropdown').classList.toggle('open');}
+document.addEventListener('click',()=>document.getElementById('lang-dropdown').classList.remove('open'));
+
+/* ── PATENTES ── */
+const PATENTES=[
+  {icon:'🔘',nome:'Recruta',min:0,max:999,cor:'#7b8096'},
+  {icon:'🟢',nome:'Apostador',min:1000,max:4999,cor:'#4caf50'},
+  {icon:'🔵',nome:'Veterano',min:5000,max:14999,cor:'#2196f3'},
+  {icon:'🟣',nome:'Expert',min:15000,max:34999,cor:'#9c27b0'},
+  {icon:'🟠',nome:'Mestre',min:35000,max:74999,cor:'#ff9800'},
+  {icon:'🔴',nome:'Lenda',min:75000,max:Infinity,cor:'#ef5350'},
+];
+function getPatenteByPts(pts){return PATENTES.find(p=>pts>=p.min&&pts<=p.max)||PATENTES[0];}
+function renderPatentes(meusPts){
+  const minha=getPatenteByPts(meusPts);
+  document.getElementById('patentes-row').innerHTML=PATENTES.map(p=>`
+    <div class="patente-card${p.nome===minha.nome?' minha':''}">
+      <div class="pat-icon">${p.icon}</div>
+      <div class="pat-nome" style="color:${p.cor}">${p.nome}</div>
+      <div class="pat-pts">${p.max===Infinity?p.min.toLocaleString()+'+':p.min.toLocaleString()+' – '+p.max.toLocaleString()}</div>
+      <div class="pat-minha">← Você</div>
+    </div>`).join('');
+}
+
+/* ── LEADERBOARD ── */
+const RANK_DATA={
+  dia:[
+    {nick:'SpeedDemon99',ganhos:4800,taxa:71,apostas:42,pts:78200},
+    {nick:'NightRider',ganhos:3200,taxa:65,apostas:38,pts:30100},
+    {nick:'lucas',ganhos:2500,taxa:64,apostas:31,pts:2500},
+    {nick:'CryptoKing',ganhos:2100,taxa:58,apostas:29,pts:39500},
+    {nick:'LaneSplitter',ganhos:1800,taxa:52,apostas:24,pts:22000},
+    {nick:'AutoPilot',ganhos:1400,taxa:60,apostas:18,pts:16200},
+    {nick:'GearHead',ganhos:980,taxa:44,apostas:35,pts:13100},
+    {nick:'TrafficMaster',ganhos:750,taxa:55,apostas:15,pts:33800},
+    {nick:'StreetWise',ganhos:420,taxa:48,apostas:20,pts:10200},
+    {nick:'UrbanLegend',ganhos:180,taxa:40,apostas:12,pts:1200},
+  ],
+  semana:[
+    {nick:'SpeedDemon99',ganhos:45230,taxa:68,apostas:1240,pts:78200},
+    {nick:'CryptoKing',ganhos:38100,taxa:55,apostas:890,pts:39500},
+    {nick:'TrafficMaster',ganhos:32450,taxa:62,apostas:650,pts:33800},
+    {nick:'NightRider',ganhos:28900,taxa:49,apostas:1500,pts:30100},
+    {nick:'LaneSplitter',ganhos:21200,taxa:51,apostas:720,pts:22000},
+    {nick:'lucas',ganhos:2500,taxa:64,apostas:31,pts:2500},
+    {nick:'RedLightGreenLight',ganhos:18500,taxa:45,apostas:900,pts:18800},
+    {nick:'AutoPilot',ganhos:15800,taxa:58,apostas:400,pts:16200},
+    {nick:'GearHead',ganhos:12300,taxa:42,apostas:1100,pts:13100},
+    {nick:'StreetWise',ganhos:9800,taxa:50,apostas:550,pts:10200},
+  ],
+  mes:[
+    {nick:'SpeedDemon99',ganhos:182000,taxa:70,apostas:4800,pts:78200},
+    {nick:'TrafficMaster',ganhos:145000,taxa:63,apostas:2600,pts:33800},
+    {nick:'CryptoKing',ganhos:128000,taxa:57,apostas:3400,pts:39500},
+    {nick:'NightRider',ganhos:98000,taxa:50,apostas:5800,pts:30100},
+    {nick:'LaneSplitter',ganhos:84000,taxa:52,apostas:2900,pts:22000},
+    {nick:'AutoPilot',ganhos:72000,taxa:59,apostas:1600,pts:16200},
+    {nick:'lucas',ganhos:2500,taxa:64,apostas:31,pts:2500},
+    {nick:'GearHead',ganhos:61000,taxa:43,apostas:4200,pts:13100},
+    {nick:'RedLightGreenLight',ganhos:48000,taxa:46,apostas:3600,pts:18800},
+    {nick:'StreetWise',ganhos:31000,taxa:51,apostas:2200,pts:10200},
+  ],
+  ano:[
+    {nick:'SpeedDemon99',ganhos:2100000,taxa:69,apostas:58000,pts:78200},
+    {nick:'CryptoKing',ganhos:1850000,taxa:56,apostas:42000,pts:39500},
+    {nick:'TrafficMaster',ganhos:1420000,taxa:61,apostas:31000,pts:33800},
+    {nick:'NightRider',ganhos:980000,taxa:50,apostas:70000,pts:30100},
+    {nick:'LaneSplitter',ganhos:820000,taxa:53,apostas:34000,pts:22000},
+    {nick:'RedLightGreenLight',ganhos:680000,taxa:46,apostas:43000,pts:18800},
+    {nick:'AutoPilot',ganhos:540000,taxa:58,apostas:18000,pts:16200},
+    {nick:'GearHead',ganhos:420000,taxa:43,apostas:50000,pts:13100},
+    {nick:'lucas',ganhos:2500,taxa:64,apostas:31,pts:2500},
+    {nick:'StreetWise',ganhos:280000,taxa:51,apostas:26000,pts:10200},
+  ]
+};
+const MEDALS=['🥇','🥈','🥉'];
+let rankPeriodo='semana';
+function filtrarRank(btn,periodo){
+  rankPeriodo=periodo;
+  document.querySelectorAll('.rpbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const labels={dia:'Hoje',semana:'Esta semana',mes:'Este mês',ano:'Este ano'};
+  document.getElementById('rank-periodo-label').textContent='— '+labels[periodo];
+  carregarLeaderboard();
+}
+function carregarLeaderboard(){
+  const dados=RANK_DATA[rankPeriodo]||RANK_DATA.semana;
+  const meuNick=usuario.username||'lucas';
+  const meuIdx=dados.findIndex(p=>p.nick===meuNick);
+  const meuDado=meuIdx>=0?dados[meuIdx]:null;
+  const meusPts=meuDado?meuDado.pts:2500;
+  renderPatentes(meusPts);
+  const tbody=document.getElementById('leaderboard-body');
+  tbody.innerHTML=dados.map((p,i)=>{
+    const euClass=p.nick===meuNick?' class="eu"':'';
+    const avatarClass=p.nick===meuNick?' eu':'';
+    const nameTag=p.nick===meuNick?`<span class="user-eu-tag">você</span>`:'';
+    const pat=getPatenteByPts(p.pts);
+    return `<tr${euClass}>
+      <td>${i<3?`<span class="rank-medal">${MEDALS[i]}</span>`:`<span class="rank-num">#${i+1}</span>`}</td>
+      <td><div class="user-cell"><div class="user-avatar${avatarClass}">${p.nick.slice(0,2).toUpperCase()}</div><span class="user-name${p.nick===meuNick?' eu':''}">${p.nick}</span>${nameTag}</div></td>
+      <td><span class="pat-tag">${pat.icon} ${pat.nome}</span></td>
+      <td><span class="win-val">${p.ganhos.toLocaleString()} coins</span></td>
+      <td><span class="win-rate">${p.taxa}%</span></td>
+      <td><span class="bets-val">${p.apostas.toLocaleString()}</span></td>
+    </tr>`;
+  }).join('');
+  // Scroll para o player se estiver no meio
+  if(meuIdx>3){
+    setTimeout(()=>{
+      const rows=tbody.querySelectorAll('tr');
+      if(rows[meuIdx]) rows[meuIdx].scrollIntoView({block:'nearest',behavior:'smooth'});
+    },100);
+  }
+  // Barra de posição
+  if(meuDado){
+    document.getElementById('minha-pos-val').textContent='#'+(meuIdx+1);
+    document.getElementById('minha-pos-ganhos').textContent=meuDado.ganhos.toLocaleString()+' coins ganhos';
+    const pat=getPatenteByPts(meuDado.pts);
+    document.getElementById('minha-patente-atual').textContent=pat.icon+' '+pat.nome+' ('+meuDado.pts.toLocaleString()+' pts)';
+  }
+}
+
+/* ── DASHBOARD ── */
+function carregarDashboard(){
+  document.getElementById('dash-saldo').textContent=Number(usuario.saldo||10000).toLocaleString('pt-BR');
+  renderChart();
+  // Hist recente
+  const items=[
+    {arena:'Tokyo Crossing',faixa:'5-9 carros',tempo:'há 2 min',val:+120},
+    {arena:'NYC Avenue',faixa:'10-14 carros',tempo:'há 5 min',val:-20},
+    {arena:'Berlin Autobahn',faixa:'0-4 carros',tempo:'há 12 min',val:+350},
+    {arena:'Dubai Highway',faixa:'15+ carros',tempo:'há 25 min',val:-10},
+    {arena:'Tokyo Crossing',faixa:'5-9 carros',tempo:'há 40 min',val:+120},
+  ];
+  document.getElementById('dash-hist-list').innerHTML=items.map(it=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(30,33,48,.5)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:7px;height:7px;border-radius:50%;background:${it.val>0?'var(--accent)':'var(--live)'}"></div>
+        <div><div style="font-size:12px;font-weight:600">${it.arena}</div><div style="font-size:9px;color:var(--text2)">${it.faixa} · ${it.tempo}</div></div>
+      </div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:${it.val>0?'var(--accent)':'var(--live)'}">${it.val>0?'+':''}${it.val}</div>
+    </div>`).join('');
+}
+
+/* ── HISTÓRICO ── */
+const FAKE_HIST=[
+  {rodada:41,arena:'Brazil Highway',faixa:'5-9',resultado:'ganhou',valor:200,ganho:460,tempo:'há 3 min'},
+  {rodada:40,arena:'Brazil Highway',faixa:'0-4',resultado:'perdeu',valor:100,ganho:0,tempo:'há 6 min'},
+  {rodada:39,arena:'Brazil Highway',faixa:'10-14',resultado:'perdeu',valor:150,ganho:0,tempo:'há 9 min'},
+  {rodada:38,arena:'Brazil Highway',faixa:'5-9',resultado:'ganhou',valor:200,ganho:380,tempo:'há 12 min'},
+  {rodada:37,arena:'Brazil Highway',faixa:'15+',resultado:'ganhou',valor:50,ganho:275,tempo:'há 15 min'},
+  {rodada:36,arena:'Brazil Highway',faixa:'0-4',resultado:'perdeu',valor:200,ganho:0,tempo:'há 18 min'},
+  {rodada:35,arena:'Brazil Highway',faixa:'5-9',resultado:'ganhou',valor:100,ganho:230,tempo:'há 21 min'},
+  {rodada:34,arena:'Brazil Highway',faixa:'10-14',resultado:'perdeu',valor:50,ganho:0,tempo:'há 24 min'},
+];
+function carregarHistorico(filtro){
+  const items=filtro==='all'?FAKE_HIST:FAKE_HIST.filter(h=>h.resultado===filtro);
+  const lista=document.getElementById('hist-lista');
+  if(!items.length){lista.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">Nenhum registro encontrado</div>';return;}
+  lista.innerHTML=items.map(h=>`
+    <div class="hist-item">
+      <div class="hist-arena-dot" style="background:${h.resultado==='ganhou'?'var(--accent)':h.resultado==='perdeu'?'var(--live)':'var(--warn)'}"></div>
+      <div class="hist-info"><div class="hist-arena">${h.arena} <span style="font-size:9px;color:var(--text3)">#${h.rodada}</span></div><div class="hist-meta">Faixa: <b>${h.faixa}</b> · Aposta: <b>${h.valor} coins</b> · ${h.tempo}</div></div>
+      <div style="text-align:right"><div class="hist-resultado ${h.resultado}">${h.resultado==='ganhou'?'+'+h.ganho:h.resultado==='perdeu'?'-'+h.valor:'...'} coins</div><div style="font-size:9px;color:var(--text2)">${h.resultado.toUpperCase()}</div></div>
+    </div>`).join('');
+}
+function filtrarHist(btn,f){
+  document.querySelectorAll('.hfbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  carregarHistorico(f);
+}
+
+/* ── WALLET ── */
+const FAKE_TRANS=[
+  {tipo:'win',desc:'Ganho — Brazil Highway #41',data:'hoje 14:32',val:+460},
+  {tipo:'dep',desc:'Depósito inicial',data:'hoje 12:00',val:+10000},
+  {tipo:'saq',desc:'Saque',data:'ontem 18:45',val:-500},
+  {tipo:'win',desc:'Ganho — Brazil Highway #38',data:'ontem 15:20',val:+380},
+];
+function carregarWallet(){
+  document.getElementById('wallet-saldo').textContent=Number(usuario.saldo||10000).toLocaleString('pt-BR')+' coins';
+  document.getElementById('wallet-trans').innerHTML=FAKE_TRANS.map(t=>`
+    <div class="trans-item">
+      <div class="trans-icon ${t.tipo}">${t.tipo==='dep'?'⬇️':t.tipo==='saq'?'⬆️':'🏆'}</div>
+      <div class="trans-info"><div class="trans-desc">${t.desc}</div><div class="trans-date">${t.data}</div></div>
+      <div class="trans-val ${t.val>0?'pos':'neg'}">${t.val>0?'+':''}${t.val.toLocaleString()} coins</div>
+    </div>`).join('');
+}
+
+/* ══ WALLET ══════════════════════════════════════════════════ */
+let wMetodo='pix', wValor=0, wTxId=null, wPollTimer=null;
+
+function wSetTab(tab,btn){
+  ['dep','saq','ext'].forEach(t=>{
+    document.getElementById('w-panel-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('wtab-'+t)?.classList.toggle('on',t===tab);
+  });
+  if(tab==='ext') carregarExtrato();
+  if(tab==='dep'||tab==='saq') wAtualizarSaldo();
+}
+function wSetMetodo(m,el){
+  wMetodo=m;
+  document.querySelectorAll('.w-metodo').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  wAtualizarResumo();
+}
+function wSetValor(v,btn){
+  wValor=v;
+  document.querySelectorAll('.w-val-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('w-val-custom').value='';
+  wAtualizarResumo();
+}
+function wAtualizarResumo(){
+  const custom=parseFloat(document.getElementById('w-val-custom')?.value);
+  if(!isNaN(custom)&&custom>0){wValor=custom;document.querySelectorAll('.w-val-btn').forEach(b=>b.classList.remove('on'));}
+  const v=wValor;
+  if(!v||v<5){document.getElementById('w-dep-btn').disabled=true;return;}
+  const taxa=wMetodo==='boleto'?3.49:wMetodo==='cartao'?Math.round(v*0.0499*100)/100:0;
+  const total=Math.round((v+taxa)*100)/100;
+  const coins=v*10;
+  const labels={pix:'Sem taxa',boleto:'Taxa boleto',cartao:'Taxa cartão (4,99%)'};
+  document.getElementById('wr-deposita').textContent='R$ '+v.toFixed(2);
+  document.getElementById('wr-taxa-label').textContent=labels[wMetodo];
+  document.getElementById('wr-taxa').textContent='R$ '+taxa.toFixed(2);
+  document.getElementById('wr-coins').textContent=coins.toLocaleString('pt-BR')+' coins';
+  document.getElementById('wr-total').textContent='R$ '+total.toFixed(2);
+  document.getElementById('w-dep-btn').disabled=false;
+  document.getElementById('w-dep-btn').textContent=`Pagar R$ ${total.toFixed(2)} →`;
+}
+function wAtualizarSaldo(){
+  if(!usuario)return;
+  const coins=usuario.saldo||0;
+  const el=document.getElementById('wallet-saldo-val');
+  const er=document.getElementById('wallet-saldo-reais');
+  if(el)el.textContent=Number(coins).toLocaleString('pt-BR');
+  if(er)er.textContent=(coins/10).toFixed(2);
+}
+function wAtualizarSaque(){
+  const coins=parseFloat(document.getElementById('w-saq-coins')?.value)||0;
+  const el=document.getElementById('w-saq-reais');
+  if(el)el.textContent=(coins/10).toFixed(2).replace('.',',');
+  const btn=document.getElementById('w-saq-btn');
+  if(btn)btn.disabled=coins<100||coins>(usuario?.saldo||0);
+}
+async function confirmarDeposito(){
+  if(!usuario)return toast('Faça login primeiro');
+  if(!wValor||wValor<5)return toast('Valor mínimo: R$ 5,00');
+  const taxa=wMetodo==='boleto'?3.49:wMetodo==='cartao'?Math.round(wValor*0.0499*100)/100:0;
+  const total=Math.round((wValor+taxa)*100)/100;
+  const btn=document.getElementById('w-dep-btn');
+  btn.disabled=true; btn.textContent='Processando...';
+  document.getElementById('w-pix-result').style.display='none';
+  document.getElementById('w-boleto-result').style.display='none';
+  try{
+    const r=await fetch(`${API}/pagamentos/depositar`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:usuario.username,senha:usuario.senha,valor:wValor,metodo:wMetodo,email:usuario.username+'@carbet.app'})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Erro no servidor');
+    wTxId=d.transacao_id;
+    if(wMetodo==='pix'){
+      document.getElementById('w-pix-result').style.display='block';
+      if(d.pix_qr_code)document.getElementById('w-pix-img').src='data:image/png;base64,'+d.pix_qr_code;
+      document.getElementById('w-pix-codigo').textContent=d.pix_copia_cola||'—';
+      wPollPagamento();
+    }else if(wMetodo==='boleto'){
+      document.getElementById('w-boleto-result').style.display='block';
+      document.getElementById('w-boleto-link').href=d.boleto_url||'#';
+      document.getElementById('w-boleto-codigo').textContent=d.boleto_codigo||'—';
+    }else if(wMetodo==='cartao'){
+      if(d.aprovado){usuario.saldo=(usuario.saldo||0)+d.coins;wAtualizarSaldo();document.getElementById('tb-saldo').textContent=Number(usuario.saldo).toLocaleString('pt-BR');toast('✅ +'+d.coins+' coins creditados!');}
+      else{toast('⏳ Aguardando aprovação...');wPollPagamento();}
+    }
+    toast('✅ Pedido enviado!');
+  }catch(e){toast('❌ '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Continuar →';}
+}
+async function confirmarSaque(){
+  if(!usuario)return toast('Faça login primeiro');
+  const coins=parseFloat(document.getElementById('w-saq-coins').value)||0;
+  const pixKey=document.getElementById('w-saq-pix').value.trim();
+  const pixType=document.getElementById('w-saq-tipo').value;
+  if(coins<100)return toast('Mínimo 100 coins');
+  if(!pixKey)return toast('Informe sua chave PIX');
+  const btn=document.getElementById('w-saq-btn');
+  btn.disabled=true;btn.textContent='Processando...';
+  try{
+    const r=await fetch(`${API}/pagamentos/sacar`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:usuario.username,senha:usuario.senha,coins,pix_key:pixKey,pix_type:pixType})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Erro');
+    usuario.saldo=d.saldo_restante;wAtualizarSaldo();
+    document.getElementById('tb-saldo').textContent=Number(usuario.saldo).toLocaleString('pt-BR');
+    toast('✅ Saque enviado! R$ '+(coins/10).toFixed(2)+' no PIX em até 10 min.');
+    document.getElementById('w-saq-coins').value='';
+    document.getElementById('w-saq-pix').value='';
+  }catch(e){toast('❌ '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Sacar via PIX →';}
+}
+function wPollPagamento(){
+  if(!wTxId)return;
+  clearInterval(wPollTimer);
+  let n=0;
+  wPollTimer=setInterval(async()=>{
+    if(++n>60){clearInterval(wPollTimer);return;}
+    try{
+      const r=await fetch(`${API}/pagamentos/status/${wTxId}`);
+      const d=await r.json();
+      if(d.aprovado){
+        clearInterval(wPollTimer);
+        usuario.saldo=(usuario.saldo||0)+d.coins;wAtualizarSaldo();
+        document.getElementById('tb-saldo').textContent=Number(usuario.saldo).toLocaleString('pt-BR');
+        const ps=document.getElementById('w-pix-status');
+        if(ps){ps.textContent='✅ Pago! '+d.coins+' coins creditados.';ps.style.color='var(--accent)';}
+        toast('✅ +'+d.coins+' coins!');
+      }else if(d.status==='cancelado'){
+        clearInterval(wPollTimer);
+        const ps=document.getElementById('w-pix-status');
+        if(ps){ps.textContent='❌ Pagamento cancelado.';ps.style.color='#ef5350';}
+      }
+    }catch(e){}
+  },5000);
+}
+function wCopiarPix(){navigator.clipboard.writeText(document.getElementById('w-pix-codigo').textContent).then(()=>toast('📋 Código PIX copiado!'));}
+function wCopiarBoleto(){navigator.clipboard.writeText(document.getElementById('w-boleto-codigo').textContent).then(()=>toast('📋 Linha digitável copiada!'));}
+async function carregarExtrato(){
+  if(!usuario){document.getElementById('w-extrato-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)">Faça login para ver seu extrato</div>';return;}
+  try{
+    const r=await fetch(`${API}/pagamentos/extrato/${usuario.username}?senha=${encodeURIComponent(usuario.senha)}`);
+    const d=await r.json();
+    const txs=d.transacoes||[];
+    if(!txs.length){document.getElementById('w-extrato-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)">Nenhuma transação ainda</div>';return;}
+    const ICONS={pix:'⚡',boleto:'📄',cartao:'💳'};
+    const SLBL={aprovado:'Aprovado',pendente:'Pendente',cancelado:'Cancelado',processando:'Processando'};
+    document.getElementById('w-extrato-list').innerHTML=txs.map(t=>{
+      const sinal=t.tipo==='deposito'?'+':'-';
+      const cor=t.tipo==='deposito'?'var(--accent)':'#ef5350';
+      const data=t.criada?new Date(t.criada).toLocaleDateString('pt-BR'):'—';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="font-size:20px">${ICONS[t.metodo]||'💰'}</div>
+        <div style="flex:1"><div style="font-weight:700;font-size:12px;text-transform:capitalize">${t.tipo} ${t.metodo}</div>
+        <div style="font-size:10px;color:var(--text3)">${data} · taxa R$ ${(t.taxa||0).toFixed(2)}</div></div>
+        <div style="text-align:right"><div style="font-weight:800;font-size:14px;color:${cor};font-family:'Rajdhani',sans-serif">${sinal}${t.coins} c</div>
+        <div class="w-status-badge ${t.status}">${SLBL[t.status]||t.status}</div></div></div>`;
+    }).join('');
+  }catch(e){document.getElementById('w-extrato-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)">Erro ao carregar</div>';}
+}
+function abrirDeposito(){navegar('wallet');setTimeout(()=>wSetTab('dep',document.getElementById('wtab-dep')),50);}
+function abrirSaque()   {navegar('wallet');setTimeout(()=>wSetTab('saq',document.getElementById('wtab-saq')),50);}
+
+function confirmarTransacao(){
+  const v=parseInt(document.getElementById('wallet-inp').value)||0;
+  if(!v) return toast('Digite um valor');
+  if(walletMode==='dep'){usuario.saldo=(usuario.saldo||0)+v;toast('✅ +'+v+' coins adicionados!');}
+  else{if(v>usuario.saldo) return toast('❌ Saldo insuficiente');usuario.saldo-=v;toast('✅ '+v+' coins sacados!');}
+  document.getElementById('tb-saldo').textContent=Number(usuario.saldo).toLocaleString('pt-BR');
+  document.getElementById('wallet-saldo').textContent=Number(usuario.saldo).toLocaleString('pt-BR')+' coins';
+  document.getElementById('wallet-form-card').style.display='none';
+  document.getElementById('wallet-inp').value='';
+  localStorage.setItem('cb_user',JSON.stringify(usuario));
+}
+
+/* ── NAVEGAÇÃO ── */
+function toggleFaq(el){el.classList.toggle('open');}
+
+function navegar(pg){if(pg==='wallet')setTimeout(wAtualizarSaldo,80);
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  document.getElementById('nav-'+pg).classList.add('active');
+  if(pg==='leaderboard'){filtrarRank(document.querySelector('.rpbtn.on')||document.querySelectorAll('.rpbtn')[1],'semana');}
+  if(pg==='dashboard') carregarDashboard();
+  if(pg==='historico') carregarHistorico('all');
+  if(pg==='wallet')    carregarWallet();
+}
+
+/* ── WEBSOCKET + ESTADO ── */
+function conectarWS2(){
+  ws2=new WebSocket(WS);
+  ws2.onmessage=e=>{
+    const d=JSON.parse(e.data);
+    // config_update: overlay foi alterado no ADM → redesenha imediatamente
+    if (d.tipo === 'config_update') {
+      const arenaAtual = window._arenaAtiva || '';
+      if (!d.arena_id || d.arena_id === arenaAtual) {
+        overlayConfig = d.config;
+        if (d.config?.linha_contagem) {
+          const l = d.config.linha_contagem;
+          linhaAtual = { ax: Math.round(l.ax*640), ay: Math.round(l.ay*360),
+                         bx: Math.round(l.bx*640), by: Math.round(l.by*360) };
+        }
+        // Reinicia animação com nova config
+        if (linhaAnimFrame) cancelAnimationFrame(linhaAnimFrame);
+        desenharLinha();
+      }
+      return;
+    }
+    atualizarEstado(d);
+  };
+  ws2.onclose=()=>setTimeout(conectarWS2,2000);
+}
+const FASE_DUR={preview:5,apostas:15,freeze:5,evento:30,resultado:5};
+const FASE_PCT={preview:0,apostas:25,freeze:50,evento:75,resultado:100};
+
+
+/* ── MODAL RESULTADO ── */
+let resultadoTimer = null;
+let apostaPendente = null; // guarda aposta até resultado ser exibido
+
+function mostrarResultado(faixaVencedora, contagemFinal, odd) {
+  if (!apostaPendente) return; // não apostou nesta rodada
+  const {faixa, valor} = apostaPendente;
+  const ganhou = faixa === faixaVencedora;
+  const lucro  = ganhou ? Math.round(valor * (odd||1) - valor) : -valor;
+  const ganho  = ganhou ? Math.round(valor * (odd||1)) : 0;
+
+  const modal = document.getElementById('resultado-modal');
+  modal.className = ganhou ? 'ganhou' : 'perdeu';
+
+  document.getElementById('res-icon').textContent    = ganhou ? '🏆' : '💨';
+  document.getElementById('res-titulo').textContent  = ganhou ? 'Você acertou!' : 'Quase lá...';
+  document.getElementById('res-sub').textContent     = ganhou
+    ? `A faixa ${faixaVencedora} foi a vencedora. Parabéns!`
+    : `A faixa vencedora foi ${faixaVencedora}. Você apostou em ${faixa}.`;
+
+  document.getElementById('res-contagem').textContent = contagemFinal ?? '—';
+  document.getElementById('res-faixa').textContent    = faixa;
+  document.getElementById('res-faixa').style.color    = ganhou ? 'var(--accent)' : '#ef5350';
+
+  document.getElementById('res-ganho').textContent      = ganhou ? '+'+ganho+' coins' : '-'+valor+' coins';
+  document.getElementById('res-ganho').style.color      = ganhou ? 'var(--accent)' : '#ef5350';
+  document.getElementById('res-ganho-label').textContent = ganhou
+    ? `retorno total · lucro líquido +${lucro} coins`
+    : `aposta perdida · tente na próxima`;
+
+  // Atualiza saldo localmente
+  if (usuario) {
+    usuario.saldo = (usuario.saldo || 0) + (ganhou ? ganho : 0);
+    const el = document.getElementById('tb-saldo');
+    if (el) el.textContent = Number(usuario.saldo).toLocaleString('pt-BR');
+  }
+
+  const overlay = document.getElementById('resultado-overlay');
+  overlay.style.display = 'flex';
+
+  // Countdown automático
+  let cd = 6;
+  clearInterval(resultadoTimer);
+  resultadoTimer = setInterval(() => {
+    cd--;
+    const cdEl = document.getElementById('res-countdown');
+    if (cdEl) cdEl.textContent = cd;
+    if (cd <= 0) fecharResultado();
+  }, 1000);
+
+  apostaPendente = null;
+}
+
+function fecharResultado() {
+  clearInterval(resultadoTimer);
+  document.getElementById('resultado-overlay').style.display = 'none';
+}
+
+function atualizarEstado(d){
+  const fase=d.fase||'';
+  document.getElementById('fase-brasil').textContent=i18n('fase_'+fase)||fase.toUpperCase();
+  document.getElementById('vol-brasil').textContent=d.pool_total?d.pool_total+' coins':'—';
+  document.getElementById('pl-brasil').textContent=d.total_apostas||'—';
+  document.getElementById('arena-players').textContent=d.total_apostas||'—';
+  if(d.id&&d.id!==rodadaAtual){
+    // Carrega linha da nova rodada (usa video_atual vindo do backend se disponível)
+    const videoNome = d.video_atual || 'teste_carros.mp4';
+    carregarLinha(d.arena_id || 'demo_sp', videoNome);
+    rodadaAtual=d.id;
+    // Só reseta aposta se resultado já foi exibido (apostaPendente===null)
+    if(!apostaPendente){ minhaAposta=null;faixaSelecionada=null; }
+    document.querySelectorAll('.faixa-btn').forEach(b=>{b.classList.remove('selected');b.disabled=false;});
+    document.getElementById('bet-btn').disabled=false;
+    document.getElementById('retorno-val').textContent='—';
+  }
+  if(fase!==faseAtual){
+    faseAtual=fase;clearInterval(timerInt);
+    timerSeg=FASE_DUR[fase]||5;
+    document.getElementById('arena-timer').textContent=timerSeg+'s';
+    document.getElementById('arena-fase-label').textContent=i18n('fase_'+fase)||fase.toUpperCase();
+    timerInt=setInterval(()=>{timerSeg--;if(timerSeg<=0){clearInterval(timerInt);timerSeg=0;}document.getElementById('arena-timer').textContent=timerSeg+'s';},1000);
+  }
+  // Timeline
+  const ORDER=['preview','apostas','freeze','evento','resultado'];
+  const idx=ORDER.indexOf(fase);
+  document.getElementById('tl-progress').style.width=(FASE_PCT[fase]||0)+'%';
+  ORDER.forEach((f,i)=>{
+    const dot=document.getElementById('tld-'+f),lbl=document.getElementById('tll-'+f),dur=document.getElementById('tld-dur-'+f);
+    if(!dot)return;
+    dot.classList.remove('done','active','evento-live');lbl.classList.remove('done','active');if(dur)dur.classList.remove('active');
+    if(i<idx){dot.classList.add('done');lbl.classList.add('done');}
+    else if(i===idx){dot.classList.add('active');lbl.classList.add('active');if(dur)dur.classList.add('active');if(f==='evento')dot.classList.add('evento-live');}
+  });
+  // Botões
+  if(fase==='apostas'&&!minhaAposta){document.querySelectorAll('.faixa-btn').forEach(b=>b.disabled=false);document.getElementById('bet-btn').disabled=false;}
+  else if(fase!=='apostas'){document.querySelectorAll('.faixa-btn').forEach(b=>{if(!b.classList.contains('selected'))b.disabled=true;});document.getElementById('bet-btn').disabled=true;}
+  // Odds
+  if(d.odds&&d.pool_faixas){
+    const FAIXAS=['0-4','5-9','10-14','15+'];
+    const pools=FAIXAS.map(f=>d.pool_faixas[f]||0);
+    const maxP=Math.max(...pools,1),total=pools.reduce((a,b)=>a+b,0);
+    FAIXAS.forEach(f=>{
+      const odd=d.odds[f]||0,pool=d.pool_faixas[f]||0,pct=total>0?Math.round(pool/total*100):0;
+      const oddEl=document.getElementById('odd-'+f);if(oddEl)oddEl.textContent=odd>0?odd.toFixed(2)+'×':'—×';
+      const bar=document.getElementById('bar-'+f);if(bar)bar.style.width=(pool/maxP*100)+'%';
+      const pctEl=document.getElementById('pct-'+f);if(pctEl)pctEl.textContent=pct+'%';
+      const poolEl=document.getElementById('pool-'+f);if(poolEl)poolEl.textContent=pool+' coins';
+    });
+    calcRetorno();
+  }
+  if(d.feed)atualizarFeed(d.feed);
+  // Contador no vídeo vem do YOLO via /frame → campo d.contagem
+  const cont=typeof d.contagem==='number'?d.contagem:(parseInt(d.contagem)||0);
+  atualizarContadorVideo(cont,fase);
+
+  // Resultado — mostra modal em qualquer aba que o usuário estiver
+  if(fase==='resultado' && d.faixa_vencedora && apostaPendente){
+    const oddUsada = d.odds ? (d.odds[apostaPendente.faixa]||1) : 1;
+    mostrarResultado(d.faixa_vencedora, d.contagem_final ?? cont, oddUsada);
+  }
+}
+async function buscarEstado(){
+  try{const r=await fetch(`${API}/estado`);const d=await r.json();atualizarEstado(d);}catch(e){}
+  setTimeout(buscarEstado,8000);
+}
+
+function selecionarFaixa(f,btn){if(minhaAposta)return;faixaSelecionada=f;document.querySelectorAll('.faixa-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');calcRetorno();}
+function setValor(v,btn){valorAposta=v;document.getElementById('wager-inp').value=v;document.querySelectorAll('.wbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');calcRetorno();}
+function calcRetorno(){
+  if(!faixaSelecionada){document.getElementById('retorno-val').textContent='—';return;}
+  const odd=parseFloat(document.getElementById('odd-'+faixaSelecionada)?.textContent)||0;
+  const val=parseInt(document.getElementById('wager-inp').value)||0;
+  if(odd>0&&val>0)document.getElementById('retorno-val').textContent=(odd*val).toFixed(0)+' coins';
+  else document.getElementById('retorno-val').textContent='—';
+}
+async function fazerAposta(){
+  if(!faixaSelecionada)return toast('Selecione uma faixa primeiro');
+  const val=parseInt(document.getElementById('wager-inp').value)||0;
+  if(val<50)return toast('Mínimo 50 coins');
+  try{
+    const r=await fetch(`${API}/apostas/fazer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:usuario.username,senha:usuario.senha,faixa:faixaSelecionada,valor:val,modo:'simulador'})});
+    const d=await r.json();
+    if(d.ok){minhaAposta=faixaSelecionada;apostaPendente={faixa:faixaSelecionada,valor:val};usuario.saldo=d.saldo_restante;document.getElementById('tb-saldo').textContent=Number(d.saldo_restante).toLocaleString('pt-BR');document.querySelectorAll('.faixa-btn').forEach(b=>{if(!b.classList.contains('selected'))b.disabled=true;});document.getElementById('bet-btn').disabled=true;toast('✅ '+faixaSelecionada+' — '+val+' coins');}
+    else toast('❌ '+(d.detail||d.erro||'Erro'));
+  }catch(e){toast('Erro de conexão');}
+}
+function atualizarFeed(feed){
+  if(!feed)return;
+  const hash=feed.length+(feed[feed.length-1]?.username||'');
+  if(hash===feedHash)return;feedHash=hash;
+  const lista=document.getElementById('activity-list');
+  if(!feed.length){lista.innerHTML=`<div style="padding:10px;text-align:center;font-size:11px;color:var(--text3)">${i18n('aguardando')}</div>`;return;}
+  lista.innerHTML=feed.slice(-8).reverse().map(f=>{
+    const isBot=f.username.startsWith('bot_');
+    const nick=isBot?f.username.replace('bot_','🤖 '):'⚡ '+f.username;
+    return `<div class="act-item"><div><div class="act-nick">${nick}</div><div class="act-sub">apostou em <span>${f.faixa}</span></div></div><div class="act-val">${f.valor} coins</div></div>`;
+  }).join('');
+}
+
+function abrirArena(arenaId, videoNome){
+  document.getElementById('lista-arenas').style.display='none';
+  document.getElementById('arena-interna').style.display='block';
+  // Carrega linha da arena selecionada
+  pararAnimacaoLinha();
+  carregarLinha(arenaId||'demo_sp', videoNome||'teste_carros.mp4');
+}
+function voltarArenas(){document.getElementById('arena-interna').style.display='none';document.getElementById('lista-arenas').style.display='block';}
+function filtrar(btn){document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+
+/* ── CONTADOR NO VÍDEO ── */
+let contadorAnterior=-1;
+function atualizarContadorVideo(cont,fase){
+  const wrap=document.getElementById('video-counter');
+  const numEl=document.getElementById('video-counter-num');
+  const rangeEl=document.getElementById('video-counter-range');
+  if(!wrap) return;
+
+  // Só mostra durante evento
+  if(fase!=='evento'){wrap.style.opacity='0';contadorAnterior=-1;return;}
+  wrap.style.opacity='1';
+
+  // Determina se está no range
+  let estado='neutral',rangeLabel='Selecione uma faixa';
+  if(faixaSelecionada){
+    const RANGES={'0-4':[0,4],'5-9':[5,9],'10-14':[10,14],'15+':[15,999]};
+    const r=RANGES[faixaSelecionada];
+    if(r){
+      const dentro=cont>=r[0]&&cont<=r[1];
+      estado=dentro?'gain':'loss';
+      rangeLabel=dentro?`✓ DENTRO DO RANGE (${faixaSelecionada})`:`✗ FORA DO RANGE (${faixaSelecionada})`;
+    }
+  }
+
+  numEl.className='video-counter-num '+estado;
+  rangeEl.className='video-counter-range '+estado;
+  rangeEl.textContent=rangeLabel;
+
+  // Anima se mudou
+  if(cont!==contadorAnterior){
+    numEl.style.animation='none';numEl.offsetHeight;
+    numEl.style.animation='numPop .2s ease';
+    contadorAnterior=cont;
+  }
+  numEl.textContent=cont;
+}
+
+/* ── CHART COM PERÍODOS ── */
+const CHART_DATA={
+  dia:{labels:['00h','04h','08h','12h','16h','20h','24h'],data:[0,50,-30,120,280,400,350]},
+  semana:{labels:['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],data:[400,200,-100,600,1200,900,1100]},
+  mes:{labels:['S1','S2','S3','S4'],data:[1200,2800,1900,4200]},
+  ano:{labels:['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],data:[800,1200,600,-200,1800,2400,1100,3200,2800,1500,4100,3600]}
+};
+let chartPeriodo='semana';
+function mudarPeriodoChart(btn,p){
+  chartPeriodo=p;
+  document.querySelectorAll('.cpbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderChart();
+}
+function renderChart(){
+  const ctx=document.getElementById('chart-profit').getContext('2d');
+  if(chartInst)chartInst.destroy();
+  const d=CHART_DATA[chartPeriodo];
+  chartInst=new Chart(ctx,{
+    type:'line',
+    data:{labels:d.labels,datasets:[{
+      label:'Saldo',data:d.data,
+      borderColor:'#00e676',backgroundColor:'rgba(0,230,118,.07)',
+      tension:.4,fill:true,
+      pointBackgroundColor:'#00e676',pointRadius:4,
+      pointHoverRadius:7,pointHoverBackgroundColor:'#00e676',
+      pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,
+    }]},
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          enabled:true,
+          backgroundColor:'rgba(19,22,31,.95)',
+          borderColor:'rgba(0,230,118,.3)',borderWidth:1,
+          titleColor:'#7b8096',bodyColor:'#00e676',
+          titleFont:{size:10,family:'DM Sans'},
+          bodyFont:{size:14,family:'Rajdhani',weight:'700'},
+          padding:10,
+          callbacks:{
+            title:ctx=>d.labels[ctx[0].dataIndex],
+            label:ctx=>{const v=ctx.raw;return (v>=0?'+':'')+v.toLocaleString()+' coins';}
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a4f66',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a4f66',font:{size:10},callback:v=>(v>=0?'+':'')+v}}
+      }
+    }
+  });
+}
+
+/* ── MAPA ── */
+function focarMapa(lat,lng,nome){
+  const iframe=document.querySelector('#page-mapa iframe');
+  if(iframe){
+    iframe.src=`https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d5000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr&markers=color:red%7C${lat},${lng}&style=feature:all|element:geometry|color:0x1a1e2a&style=feature:road|element:geometry|color:0x2d3142`;
+    toast('📍 '+nome);
+  }
+}
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.opacity='1';el.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(window._tt);
+  window._tt=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(10px)';},3000);
+}
+
+window.onload=()=>{
+  const l=localStorage.getItem('cb_lang')||'pt';
+  setLang(l);
+  navegar('arenas');
+
+
+  // Verificar se já tem sessão salva
+  const salvo=localStorage.getItem('cb_user');
+  if(salvo){
+    try{
+      const u=JSON.parse(salvo);
+      if(u.username&&u.senha){
+        // Revalida no servidor silenciosamente
+        fetch(`${API}/usuarios/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.username,senha:u.senha})})
+          .then(r=>r.json())
+          .then(d=>{
+            if(d.username) entrarApp({...d,senha:u.senha});
+            else { localStorage.removeItem('cb_user'); }
+          })
+          .catch(()=>{
+            // Servidor offline — entra com dados salvos mesmo assim
+            entrarApp(u);
+          });
+        return;
+      }
+    }catch(e){}
+  }
+  // Sem sessão salva — mostra tela de login
+  document.getElementById('tela-login-arenas').style.display='flex';
+};
+</script>
+</body>
+</html>
